@@ -19,7 +19,8 @@
 ; p_Dest [, p_Orig, p_Show, p_Func]
 ;
 ; + Required parameters:
-; - p_Dest   The variable whose history should be changed/listed/erased
+; - p_Dest   The literal name [string] of the variable whose history
+;            should be changed/listed/erased
 ;
 ; + Optional parameters:
 ; - p_Orig   New value for the variable
