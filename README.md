@@ -1,6 +1,6 @@
 # My AutoHotkey Stuff
 
-This is where I'll keep my AHK libraries, functions, templates, code snippets...
+This is where I'll keep my AHK libraries, functions, templates, code snippets, etc.
 
 Make sure you read the **LICENSE** file if you think about using any code located here.
 
