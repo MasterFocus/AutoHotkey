@@ -20,14 +20,14 @@
 ; 
 ; Function:     RandomVar
 ; Description:  Returns a random content (with optional type)
-; http://www.autohotkey.com/community/viewtopic.php?f=2&t=47104
+; URL (+info):  http://bit.ly/QJUt8A
 ;
 ; Last Update:  25/August/2009 01:30 BRT
 ;
 ; Created by MasterFocus
-; https://github.com/MasterFocus
-; http://masterfocus.ahk4.net
-; www.autohotkey.com/community/viewtopic.php?f=2&t=88198
+; - https://github.com/MasterFocus
+; - http://masterfocus.ahk4.net
+; - http://autohotkey.com/community/viewtopic.php?f=2&t=88198
 ;
 ;========================================================================
 
