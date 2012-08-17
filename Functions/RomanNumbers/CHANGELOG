@@ -1,0 +1,11 @@
+17/august/2012
+  • Fixed old bug in Roman2Dec (thanks echristopherson)
+
+05/june/2010
+  • Fixed missing elements when declaring st_Romans
+
+12/may/2010
+  • Added support to multiples of 1000
+
+11/may/2010
+  • Initial release

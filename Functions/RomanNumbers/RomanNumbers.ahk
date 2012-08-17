@@ -1,28 +1,33 @@
+/*
+    RomanNumbers.ahk
+    Copyright (C) 2010,2012 Antonio França
+
+    This script is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as
+    published by the Free Software Foundation, either version 3 of the
+    License, or (at your option) any later version.
+
+    This script is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Affero General Public License for more details.
+
+    You should have received a copy of the GNU Affero General Public License
+    along with this script.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 ;========================================================================
 ; 
 ; Functions:    Dec2Roman & Roman2Dec
 ; Description:  Functions to perform convertions between roman and decimal
-; Online Ref.:  http://www.autohotkey.com/forum/viewtopic.php?p=354957#354957
+; URL (+info):  http://bit.ly/RoIP9H
 ;
-; Last Update:  05/Jun/2010 18:00
+; Last Update:  17/august/2012 19:50 BRT
 ;
-; Created by:   MasterFocus
-;               http://www.autohotkey.net/~MasterFocus/AHK/
-;
-; Algorithm:    Check the forum thread for the original algorithm
-;
-;========================================================================
-;
-; + Required parameters:
-; - D2R: p_Number       A decimal positive integer
-; - R2D: p_RomanStr     A correctly formatted roman number
-;
-; + Optional parameters:
-; - p_AllowNegative     Boolean, allow negative input (default: false)
-;
-; If the input is invalid, Dec2Roman returns 0 and Roman2Dec returns a
-; blank string. Closed brackets are used to represent letters that are
-; supposed to have a bar above it. 1000 is represented by "M", not "[I]".
+; Created by MasterFocus
+; - https://github.com/MasterFocus
+; - http://masterfocus.ahk4.net
+; - http://autohotkey.com/community/viewtopic.php?f=2&t=88198
 ;
 ;========================================================================
 
@@ -52,7 +57,8 @@ Roman2Dec(p_RomanStr,p_AllowNegative=false)
   ,st_[X][L]:=40000,st_[X]:=10000,st_M[X]:=9000,st_[V]:=5000,st_M[V]:=4000,st_M:=1000,st_CM:=900,st_D:=500,st_CD:=400
   ,st_C:=100,st_XC:=90,st_L:=50,st_XL:=40,st_X:=10,st_IX:=9,st_V:=5,st_IV:=4,st_I:=1
   StringReplace, l_Needle, st_Romans, [, \[, All
-  If ( !RegExMatch( p_RomanStr , "^(-?)(" l_Needle ")+$" , l_Match ) || ErrorLevel
+  StringReplace, l_Needle, l_Needle, % " ", |, All
+  If ( !RegExMatch( p_RomanStr , "i)^(-?)(" l_Needle ")+$" , l_Match ) || ErrorLevel
        || ( ( l_Match1 = "-" ) AND !p_AllowNegative ) )
     Return 0
   StringReplace, l_Match, l_Match, %l_Match1%, , All
