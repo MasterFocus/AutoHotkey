@@ -1,0 +1,18 @@
+25/august/2009
+  • Improved performance (StringReplace instead of RegExReplace)
+
+10/august/2009
+  • Fixed usage of '@' and '#' without a valid type
+  • Shortened function code
+  • Improved readability of usage info
+  • Added more usage examples
+
+09/august/2009
+  • Improved detection of special characters in type string
+  • Shortened example
+
+01/august/2009
+  • Added new feature ('!' special character)
+  • Removed some unnecessary local variables
+  • Improved example
+  • Fixed typo (thanks temp01)
