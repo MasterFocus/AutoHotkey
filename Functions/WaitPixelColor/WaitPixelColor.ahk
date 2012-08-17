@@ -1,6 +1,6 @@
 /*
-    RegExSort.ahk
-    Copyright (C) 2010 Antonio França
+    WaitPixelColor.ahk
+    Copyright (C) 2009 Antonio França
 
     This script is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as
@@ -18,42 +18,43 @@
 
 ;========================================================================
 ; 
-; Function:     ClearArray
-; Description:  Clears array elements (makes them become empty)
+; Function:     WaitPixelColor
+; Description:  Waits until pixel is a certain color (w/ optional timeout)
+; URL (+info):  https://bit.ly/R7gT8a
 ;
-; Last Update:  16/March/2010 19:00 BRT
+; Last Update:  19/July/2009 04:30 BRT
 ;
 ; Created by MasterFocus
 ; - https://github.com/MasterFocus
 ; - http://masterfocus.ahk4.net
 ; - http://autohotkey.com/community/viewtopic.php?f=2&t=88198
 ;
-; Thanks to SKAN, Laszlo, PhiLho and Titan (aka polyethene) for VarExist()
-; - http://autohotkey.com/community/viewtopic.php?p=83371#p83371
-;
 ;========================================================================
 
-ClearArray(p_ArrayName,p_Start=0,p_End=0)
+WaitPixelColor(p_DesiredColor,p_PosX,p_PosY,p_TimeOut=0,p_GetMode="",p_ReturnColor=0)
 {
-  local l_tmp, l_count
-  If ( p_Start < 0 ) OR ( p_End < 0 ) OR ( p_End > p_Start )
-    Return 2
-  If !p_End
-    Loop {
-      tmp := p_ArrayName . p_Start
-      If !varExist(%tl_tmp%)
-        Break
-      %l_tmp% := "" , l_count++ , p_Start++
+    l_Start := A_TickCount
+    Loop
+    {
+        PixelGetColor, l_RetrievedColor, %p_PosX%, %p_PosY%, %p_GetMode%
+        If ErrorLevel
+        {
+            If !p_ReturnColor
+                Return 1
+            Break
+        }
+        If ( l_RetrievedColor = p_DesiredColor )
+        {
+            If !p_ReturnColor
+                Return 0
+            Break
+        }
+        If ( p_TimeOut ) && ( A_TickCount - l_Start >= p_TimeOut )
+        {
+            If !p_ReturnColor
+                Return 2
+            Break
+        }
     }
-  Else
-    Loop {
-      %p_ArrayName%%p_Start% := "" , l_count++
-      If ( p_Start = p_End )
-        Break
-      p_Start++
-    }
-  Return !l_count
-}
-varExist(ByRef v) {
-   return &v = &n ? 0 : v = "" ? 2 : 1
+    Return l_RetrievedColor
 }
