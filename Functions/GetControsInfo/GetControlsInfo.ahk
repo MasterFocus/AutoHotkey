@@ -20,7 +20,7 @@
 ; 
 ; Function:     GetControlsInfo
 ; Description:  Retrieves name, HWND, position, width and height
-; Online Ref.:  http://www.autohotkey.com/forum/viewtopic.php?t=44928
+; URL (+info):  http://bit.ly/Q9Ddcs
 ;
 ; Last Update:  11/august/2012 23:50 BRT
 ;
