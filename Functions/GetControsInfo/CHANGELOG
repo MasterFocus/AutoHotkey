@@ -1,0 +1,13 @@
+17/august/2012
+  • Shortened function code
+  • Sacrificed output readibility in favor of a better usage example
+
+11/august/2009
+  • Fixed optional WinTitle bug (the function can be called with no arguments now)
+  • Improved example to show new behaviour
+
+04/june/2009
+  • Improved readability of returned string
+
+03/june/2009
+  • Initial release

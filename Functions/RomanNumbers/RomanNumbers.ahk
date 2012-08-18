@@ -31,8 +31,7 @@
 ;
 ;========================================================================
 
-Dec2Roman(p_Number,p_AllowNegative=false)
-{
+Dec2Roman(p_Number,p_AllowNegative=false) {
   If p_Number is not integer
     Return 0
   If (p_Number=0 OR (p_Number<0 AND !p_AllowNegative))
@@ -50,8 +49,7 @@ Dec2Roman(p_Number,p_AllowNegative=false)
 
 ;---------------------------------------------------------------
 
-Roman2Dec(p_RomanStr,p_AllowNegative=false)
-{
+Roman2Dec(p_RomanStr,p_AllowNegative=false) {
   static st_Romans := "[M] [C][M] [D] [C][D] [C] [X][C] [L] [X][L] [X] M[X] [V] M[V] M CM D CD C XC L XL X IX V IV I"
   ,st_[M]:=1000000,st_[C][M]:=900000,st_[D]:=500000,st_[C][D]:=400000,st_[C]:=100000,st_[X][C]:=90000,st_[L]:=50000
   ,st_[X][L]:=40000,st_[X]:=10000,st_M[X]:=9000,st_[V]:=5000,st_M[V]:=4000,st_M:=1000,st_CM:=900,st_D:=500,st_CD:=400
@@ -63,28 +61,22 @@ Roman2Dec(p_RomanStr,p_AllowNegative=false)
     Return 0
   StringReplace, l_Match, l_Match, %l_Match1%, , All
   l_Previous := l_Match2
-  While ( l_Match <> "" )
-  {
+  While ( l_Match <> "" ) {
     StringRight, l_Removed, l_Match, 1
     StringTrimRight, l_Match, l_Match, 1
-    If ( l_Removed = "]" )
-    {
+    If ( l_Removed = "]" ) {
       StringRight, l_Match2, l_Match, 2
       StringTrimRight, l_Match, l_Match, 2
       l_Removed := l_Match2 l_Removed
     }
-    If ( st_%l_Removed% < st_%l_Previous% )
-    {
+    If ( st_%l_Removed% < st_%l_Previous% ) {
       l_Match2 := l_Removed l_Previous
       If ( st_%l_Previous% - st_%l_Removed% <> st_%l_Match2% )
         Return 0
       l_Sum -= ( st_%l_Removed% )
     }
     Else
-    {
-      l_Sum += ( st_%l_Removed% )
-      l_Previous := l_Removed
-    }
+      l_Sum += ( st_%l_Removed% ) , l_Previous := l_Removed
   }
   Return l_Match1 l_Sum
 }
