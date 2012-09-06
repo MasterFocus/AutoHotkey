@@ -1,6 +1,6 @@
 /*
     WaitPixelColor.ahk
-    Copyright (C) 2009 Antonio França
+    Copyright (C) 2009,2012 Antonio França
 
     This script is free software: you can redistribute it and/or modify
     it under the terms of the GNU Affero General Public License as
@@ -22,7 +22,7 @@
 ; Description:  Waits until pixel is a certain color (w/ optional timeout)
 ; URL (+info):  https://bit.ly/R7gT8a
 ;
-; Last Update:  19/July/2009 04:30 BRT
+; Last Update:  06/September/2012 09:00 BRT
 ;
 ; Created by MasterFocus
 ; - https://github.com/MasterFocus
@@ -31,30 +31,15 @@
 ;
 ;========================================================================
 
-WaitPixelColor(p_DesiredColor,p_PosX,p_PosY,p_TimeOut=0,p_GetMode="",p_ReturnColor=0)
-{
-    l_Start := A_TickCount
-    Loop
-    {
-        PixelGetColor, l_RetrievedColor, %p_PosX%, %p_PosY%, %p_GetMode%
-        If ErrorLevel
-        {
-            If !p_ReturnColor
-                Return 1
-            Break
-        }
-        If ( l_RetrievedColor = p_DesiredColor )
-        {
-            If !p_ReturnColor
-                Return 0
-            Break
-        }
-        If ( p_TimeOut ) && ( A_TickCount - l_Start >= p_TimeOut )
-        {
-            If !p_ReturnColor
-                Return 2
-            Break
-        }
-    }
-    Return l_RetrievedColor
+WaitPixelColor(p_DesiredColor,p_PosX,p_PosY,p_TimeOut=0,p_GetMode="",p_ReturnColor=0) {
+  l_Start := A_TickCount
+  Loop {
+    PixelGetColor, l_OutputColor, %p_PosX%, %p_PosY%, %p_GetMode%
+    If ErrorLevel
+      Return ( p_ReturnColor ? l_OutputColor : 1 )
+    If ( l_OutputColor = p_DesiredColor )
+      Return ( p_ReturnColor ? l_OutputColor : 0 )
+    If ( p_TimeOut ) && ( A_TickCount - l_Start >= p_TimeOut )
+      Return ( p_ReturnColor ? l_OutputColor : 2 )
+  }
 }
