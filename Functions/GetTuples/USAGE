@@ -1,0 +1,41 @@
+========================================================================
+
+ p_List, p_Pick [, p_Din, p_Dout, p_Offset, p_Count, p_Func, p_Valid]
+
+ + Required parameters:
+ - p_List     Input list of elements (optionally delimited)
+ - p_Pick     Number of elements for each tuple
+
+ + Optional parameters:
+ - p_Din      Input delimiters, see remark* (default: blank)
+ - p_Dout     Output delimiter (default: `n)
+ - p_Offset   Starting offset for computing tuples (default: 0)
+ - p_Count    Number of tuples to compute (default: 0, means all)
+ - p_Func     Function to execute on each tuple (default: blank)
+ - p_Valid    Number of valid outputs to compute (default: 0, means all)
+
+ The function will compute each tuple of p_Pick elements, which may have
+ repetition. See http://en.wikipedia.org/wiki/Tuple for more information.
+
+ *Please note that p_Din is a list of single character delimiters. Check
+ http://www.autohotkey.com/docs/commands/StringSplit.htm for more info.
+
+ The default returned string will be blank if:
+ - p_List is blank
+ - p_Pick is not greater than 0
+
+ If p_Func is blank, GetTuples will concatenate to the output variable all
+ tuples (delimited by p_Dout). This option may fail when computing too many
+ tuples, due to some issues regarding maximum memory and output size.
+
+ If p_Func is the name [literal string] of another function, it will be
+ executed for each tuple right away and its returned value (if any) will be
+ concatenated to the output string of GetTuples (also delimited by p_Dout).
+ The p_Func function must have one required parameter (to receive the tuple).
+
+ When using p_Func as described above, any non-blank string returned by the
+ custom function is considered valid. The p_Valid parameter can be used to
+ force GetTuples to stop after a certain number of valid custom outputs has
+ been reached.
+
+========================================================================

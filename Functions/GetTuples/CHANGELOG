@@ -1,0 +1,32 @@
+11/december/2012
+  • It is now possible to limit the number of valid arrangements generated
+
+13/september/2012
+  • Fixed output concatenation when the p_Func function returned blank
+
+29/august/2012
+  • Minor performance improvement (l_Result is now fixed after the offset check)
+
+15/august/2012
+  • Complete rewrite, mantaining flexibility and output order
+  • Removed l_UnusedChar variable and B2B() modified function
+  • Removed the maximum input limitation of 64 elements only
+  • The function now runs extremely faster
+  • Fixed a newly found bug when exploiting certain values for p_Offset and p_Count
+
+05/july/2012
+  • Fixed variable l_UnusedChar (thanks berban)
+  • Elected GetTuples_B() as final version (thanks Uberi)
+
+27/june/2012
+  • Added optional parameter p_Func
+  • Replaced internal delimiter with local variable l_UnusedChar
+  • Tweaked code to work properly with p_Func and faster
+  • Provided versions GetTuples_A() and GetTuples_B() for benchmarking
+
+20/july/2010
+  • Added optional parameters p_Offset and p_Count
+  • Set p_Pick as optional (default value: 2)
+
+22/june/2010
+  • Initial release
