@@ -1,5 +1,5 @@
 /*
-    WaitPixelColor.ahk
+    GetTuples.ahk
     Copyright (C) 2010,2012 Antonio França
 
     This script is free software: you can redistribute it and/or modify
