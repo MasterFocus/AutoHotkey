@@ -1,0 +1,14 @@
+06/march/2013
+  • Fixed case sensitive RegEx needles
+
+20/september/2010
+  • Corrected a mistake when using loc_MultY inside the if statement
+  • Converted most parameters into a string of options
+
+12/september/2010
+  • Renamed all variables for easier readability
+  • Added a parameter for blocking mouse input
+  • Added support to relative movements
+
+16/august/2010
+  • Initial release
