@@ -1,6 +1,6 @@
 ;**********************************************************************************
 ;
-; Gdip_FastImageSearch() - 07/MARCH/2013 02:45h BRT
+; Gdip_FastImageSearch() - 08/MARCH/2013 18:45h BRT
 ; by MasterFocus, based on previous work by tic and Rseding91
 ; http://www.autohotkey.com/board/topic/71100-gdip-imagesearch/
 ;
@@ -42,30 +42,53 @@
 ;   1 = left->right, top->bottom ;; 2 = left->right, bottom->top
 ;   3 = right->left, bottom->top ;; 4 = right->left, top->bottom
 ;
-; UseLastHaystackData
-;   Boolean, tells the function to keep some haystack data for future use
-;   - If this is true and there is no previous data, the current data is used and saved
-;   - If this is false, any saved data is deleted/released/unlocked
-;   (this is specially useful for multiple searches with the same haystack)
+; UseLastData
+;   Tells the function to keep same haystack and/or needle data for future use
+;   - If this is set and there is no previous data, the current data is used and saved
+;   - If this is not set, any saved data is deleted/released/unlocked
+;   0 or 0x00 = not set for the haystack and not set for the needle
+;   1 or 0x01 = set for the haystack and not set for the needle
+;   2 or 0x10 = not set for the haystack and set for the needle
+;   3 or 0x11 = set for the haystack and set for the needle
+;   (specially useful for multiple searches with the same haystack and/or needle)
 ;   Default: 0
 ;
 ; nWidth and nHeight
-;   These can be used to store the width and height of the needle internally used
+;   These can be used to store, out of the function, the width and height of the needle internally used
 ;   (retrieved from the resized needle, if w or h is set)
-;   (these are specially useful for multiple searches with the same haystack)
+;   (specially useful for multiple searches with the same haystack and/or needle)
 ;==================================================================================
 
 Gdip_FastImageSearch(pBitmapHayStack="",pBitmapNeedle="",ByRef x="",ByRef y="",sx1="",sy1="",sx2="",sy2=""
-,Variation=0,Trans=0,w=0,h=0,sd=0,UseLastHaystackData=0,ByRef nWidth="",ByRef nHeight="")
+,Variation=0,Trans=0,w=0,h=0,sd=0,UseLastData=0,ByRef byref_nWidth="",ByRef byref_nHeight="")
 {
     static _ImageSearch1, _ImageSearch2, _PixelAverage, Ptr, PtrA
-	, hWidth, hHeight, Stride1, Scan01, BitmapData1, lastHaystack ; {MF} added some static stuff
+    ; {MF} added some static stuff
+	, hWidth, hHeight, Stride1, Scan01, BitmapData1, lastHaystack
+    , Stride2, Scan02, BitmapData2, lastNeedle, nWidth, nHeight
 
-    ; {MF} delete/unlock/release previous haystack data
+    ; {MF} verify if we should use/keep data for the haystack and/or the needle
+    UseLastHaystackData := !!(UseLastData & 0x01)
+    UseLastNeedleData := !!(UseLastData & 0x10)
+
+    ; {MF} delete/unlock/release all previous haystack data if it should not be used
 	if !UseLastHaystackData
     {
 	    Gdip_UnlockBits(lastHaystack, BitmapData1)
-        lastHaystack := hWidth := hHeight := Stride1 := Scan01 := BitmapData1 := lastHaystack := ""
+        hWidth := hHeight := Stride1 := Scan01 := BitmapData1 := ""
+		Gdip_DisposeImage(lastHaystack)
+        lastHaystack := ""
+    }
+
+    ; {MF} store the previous needle dimensions in the ByRef variables before possibly deleting the values
+    byref_nWidth := nWidth, byref_nHeight := nHeight
+    ; {MF} delete/unlock/release all previous needle data if it should not be used
+	if !UseLastNeedleData
+    {
+	    Gdip_UnlockBits(lastNeedle, BitmapData2)
+        nWidth := nHeight := Stride2 := Scan02 := BitmapData2 := ""
+		Gdip_DisposeImage(lastNeedle)
+        lastNeedle := ""
     }
     
     if !_ImageSearch1
@@ -152,28 +175,39 @@ Gdip_FastImageSearch(pBitmapHayStack="",pBitmapNeedle="",ByRef x="",ByRef y="",s
         if (pBitmapHayStack = "")
             return -1
         if (pBitmapHayStack = "Screen") {
-            Dump_HayStack := True
+            Dump_Haystack := True
             pBitmapHayStack := Gdip_BitmapFromScreen()
         }
     }
     lastHaystack := pBitmapHayStack ; {MF] save the current haystack (even if it's the same, won't hurt)
     
-    if (pBitmapNeedle = "")
-        return -1
-    if (FileExist(pBitmapNeedle)) {
-        ;Load the image from the HD
-        Dump_Needle := True
-        pBitmapNeedle := Gdip_CreateBitmapFromFile(pBitmapNeedle)
+    If UseLastNeedleData && lastNeedle ; {MF] if there IS a previous needle, it's ok to use it
+        pBitmapNeedle := lastNeedle
+    Else {
+        if (pBitmapNeedle = "")
+            return -1
+        if (FileExist(pBitmapNeedle)) {
+            ;Load the image from the HD
+            Dump_Needle := True
+            pBitmapNeedle := Gdip_CreateBitmapFromFile(pBitmapNeedle)
+        }
     }
+    lastNeedle := pBitmapNeedle ; {MF] save the current needle (even if it's the same, won't hurt)
     
     if (Variation > 255 || Variation < 0)
         return -2
     
     ; {MF} retrieve the haystack dimensions if we don't wanna use the saved data OR this information is not saved yet
-    ; {MF} (this if-statement may not be necessary, I still have to benchmark it)
+    ; {MF} (this if-statement may not be necessary, I still have to test it)
 	if ( !UseLastHaystackData || !hWidth )
         Gdip_GetImageDimensions(pBitmapHayStack, hWidth, hHeight)
-    Gdip_GetImageDimensions(pBitmapNeedle, nWidth, nHeight)
+    ; {MF} retrieve the needle dimensions if we don't wanna use the saved data OR this information is not saved yet
+    ; {MF} (this if-statement may not be necessary, I still have to test it)
+	if ( !UseLastNeedleData || !nWidth )
+    {
+        Gdip_GetImageDimensions(pBitmapNeedle, nWidth, nHeight)
+        byref_nWidth := nWidth, byref_nHeight := nHeight ; {MF} replicate the dimensions to the ByRef parameters
+    }
     
     if !(hWidth && hHeight && nWidth && nHeight)
         return -3
@@ -204,6 +238,7 @@ Gdip_FastImageSearch(pBitmapHayStack="",pBitmapNeedle="",ByRef x="",ByRef y="",s
         
         , pBitmapNeedle := pTempBitmap
         , Gdip_GetImageDimensions(pBitmapNeedle, nWidth, nHeight)
+        , byref_nWidth := nWidth, byref_nHeight := nHeight ; ADICIONADO (adicinada) esta linha
         
         if !(nWidth && nHeight){
             Gdip_DisposeImage(pBitmapNeedle)
@@ -264,16 +299,21 @@ Gdip_FastImageSearch(pBitmapHayStack="",pBitmapNeedle="",ByRef x="",ByRef y="",s
     
     ;If Trans is used and the needle hasen't already been copied through scaling or loading
     ;create a copy because it might be modified by the imagesearch code
-    if (!w && !h && Trans && !Dump_Needle)
+    ; {MF} we can only do that if we're not using saved data!
+    if ( (!w && !h && Trans && !Dump_Needle) && !UseLastNeedleData )
         pBitmapNeedle := Gdip_CloneBitmapArea(pBitmapNeedle, 0, 0, nWidth, nHeight)        
     
     ;Stride2/Scan02/BitmapData2 are used because the needle is the second image eventhough it's used first
-    if Gdip_LockBits(pBitmapNeedle, 0, 0, nWidth, nHeight, Stride2, Scan02, BitmapData2) {
-        if (w || h || Trans || Dump_Needle)
-            Gdip_DisposeImage(pBitmapNeedle)
-        if (Dump_HayStack)
-            Gdip_DisposeImage(pBitmapHayStack)
-        return -12
+    ; {MF} lock the bits if we don't wanna use the saved data OR the bits are not locked yet
+	if (!UseLastNeedleData || !BitmapData2)
+    {
+        if Gdip_LockBits(pBitmapNeedle, 0, 0, nWidth, nHeight, Stride2, Scan02, BitmapData2) {
+            if (w || h || Trans || Dump_Needle)
+                Gdip_DisposeImage(pBitmapNeedle)
+            if (Dump_HayStack)
+                Gdip_DisposeImage(pBitmapHayStack)
+            return -12
+        }
     }
     
     ;Averages the needle in 4 chunks counting the number of pixels(R, G & B) that arn't +- 25 of the average color
@@ -306,16 +346,27 @@ Gdip_FastImageSearch(pBitmapHayStack="",pBitmapNeedle="",ByRef x="",ByRef y="",s
     , E := DllCall((Variation = 0 ? &_ImageSearch1 : &_ImageSearch2), "int*", x, "int*", y, Ptr, Scan01, Ptr, Scan02, "int", nWidth
     , "int", nHeight, "int", Stride1, "int", Stride2, "int", sx1, "int", sy1, "int", sx2, "int", sy2, Ptr, &Trans, "int", Variation
     , "int", sd, "int", suX, "int", suY, "cdecl int")
-    
-    ; {MF} unlock the bits of the current haystack if we don't want to keep it
+
+    ; {MF} delete/unlock/release all current haystack data (except the bitmap itself) if it should not be saved
     if !UseLastHaystackData
-	    Gdip_UnlockBits(pBitmapHayStack, BitmapData1)
-	Gdip_UnlockBits(pBitmapNeedle, BitmapData2)
+    {
+        Gdip_UnlockBits(pBitmapHayStack, BitmapData1)
+        hWidth := hHeight := Stride1 := Scan01 := BitmapData1 := ""
+        lastHaystack := ""
+    }
+    ; {MF} delete/unlock/release all current needle data (except the bitmap itself) if it should not be saved
+    if !UseLastNeedleData
+    {
+        Gdip_UnlockBits(pBitmapNeedle, BitmapData2)
+        ; {MF} do not reset nWidth/nHeight because they're ByRef parameters 
+        Stride2 := Scan02 := BitmapData2 := nWidth := nHeight := ""
+        lastNeedle := ""
+    }
     
-    if (w || h || Trans || Dump_Needle)
+    if ( w || h || Trans || Dump_Needle )
         Gdip_DisposeImage(pBitmapNeedle)
     
-    if (Dump_HayStack)
+    if ( Dump_HayStack )
         Gdip_DisposeImage(pBitmapHayStack)
     
     return (E = "") ? -13 : E
