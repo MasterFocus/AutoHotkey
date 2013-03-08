@@ -1,32 +1,72 @@
 ;**********************************************************************************
-; Unaltered latest version of Gdip_ImageSearch()
-; by tic and Rseding91, found here:
-; http://www.autohotkey.com/board/topic/71100-gdip-imagesearch/?p=563150
+;
+; Gdip_FastImageSearch() - 07/MARCH/2013 02:45h BRT
+; by MasterFocus, based on previous work by tic and Rseding91
+; http://www.autohotkey.com/board/topic/71100-gdip-imagesearch/
+;
+; Licensed under CC BY-SA 3.0 -> http://creativecommons.org/licenses/by-sa/3.0/
+; I waive compliance with the "Share Alike" condition exclusively for these users:
+; - tic , Rseding91 , guest3456
+;
 ;**********************************************************************************
 
-Gdip_ImageSearch(pBitmapHayStack="Screen", pBitmapNeedle="", ByRef x="", ByRef y="", sx1="", sy1="", sx2="", sy2="", Variation=0, Trans=0, w=0, h=0, sd=0)
+;==================================================================================
+;
+; pBitmapHayStack
+;   Use "Screen" or an already existing pBitmap
+;   Default: "" (returns -1)
+;
+; pBitmapNeedle
+;   A filename or an already existing pBitmap
+;  Default: "" (returns -1)
+;
+; x and y
+;   Variables to store the X and Y coordinates of the image if it's found
+;   Default: "" for both
+;
+; sx1, sy1, sx2 and sy2
+;   These can be used to crop the search area within the haystack
+;   Default: "" for all (does not crop)
+;
+; Variation and Trans
+;   Same as the builtin ImageSearch command (I guess we all know that)
+;   Default: 0 for both
+;
+; w and h
+;   Parameters used to resize the needle (-1 for one of those will mantain aspect ratio)
+;   Default: 0 for both
+;
+; sd
+;   Search direction:
+;   0 = auto detect best direction [default]
+;   1 = left->right, top->bottom ;; 2 = left->right, bottom->top
+;   3 = right->left, bottom->top ;; 4 = right->left, top->bottom
+;
+; UseLastHaystackData
+;   Boolean, tells the function to keep some haystack data for future use
+;   - If this is true and there is no previous data, the current data is used and saved
+;   - If this is false, any saved data is deleted/released/unlocked
+;   (this is specially useful for multiple searches with the same haystack)
+;   Default: 0
+;
+; nWidth and nHeight
+;   These can be used to store the width and height of the needle internally used
+;   (retrieved from the resized needle, if w or h is set)
+;   (these are specially useful for multiple searches with the same haystack)
+;==================================================================================
+
+Gdip_FastImageSearch(pBitmapHayStack="",pBitmapNeedle="",ByRef x="",ByRef y="",sx1="",sy1="",sx2="",sy2=""
+,Variation=0,Trans=0,w=0,h=0,sd=0,UseLastHaystackData=0,ByRef nWidth="",ByRef nHeight="")
 {
-    /*
-    pBitmapHayStack:
-        If "Screen" - screenshots screen 0 to be searched
-        Else pointer to a Gdip bitmap object
-    pBitmapNeedle:
-        If filename - file is loaded
-        Else pointer to a Gdip bitmap object
-    x:
-        The found X value of the needle image in the haystack image
-    Y:
-        The found Y value of the needle image in the haystack image
-    sx1:
-        The left bound search box for the haystack image (0 base)
-    sy1:
-        The upper bound search box for the haystack image (0 base)
-    sx2:
-        The right bound search box for the haystack image (0 base)
-    sy2:
-        The lower bound search box for the haystack image (0 base)
-    */
     static _ImageSearch1, _ImageSearch2, _PixelAverage, Ptr, PtrA
+	, hWidth, hHeight, Stride1, Scan01, BitmapData1, lastHaystack ; {MF} added some static stuff
+
+    ; {MF} delete/unlock/release previous haystack data
+	if !UseLastHaystackData
+    {
+	    Gdip_UnlockBits(lastHaystack, BitmapData1)
+        lastHaystack := hWidth := hHeight := Stride1 := Scan01 := BitmapData1 := lastHaystack := ""
+    }
     
     if !_ImageSearch1
     {
@@ -105,18 +145,22 @@ Gdip_ImageSearch(pBitmapHayStack="Screen", pBitmapNeedle="", ByRef x="", ByRef y
         , DllCall("VirtualProtect", Ptr, &_PixelAverage, Ptr, VarSetCapacity(_PixelAverage), "uint", 0x40, PtrA, 0)
     }
     
-    ;Alows the MCode to be setup before imagesearch is really needed
-    if (pBitmapHayStack = "")
-        return -1
-    else if (pBitmapHayStack = "Screen"){
-        ;Capture the screen
-        Dump_HayStack := True
-        pBitmapHayStack := Gdip_BitmapFromScreen()
+    If UseLastHaystackData && lastHaystack ; {MF] if there IS a previous haystack, it's ok to use it
+        pBitmapHayStack := lastHaystack
+    Else {
+        ;Alows the MCode to be setup before imagesearch is really needed
+        if (pBitmapHayStack = "")
+            return -1
+        if (pBitmapHayStack = "Screen") {
+            Dump_HayStack := True
+            pBitmapHayStack := Gdip_BitmapFromScreen()
+        }
     }
+    lastHaystack := pBitmapHayStack ; {MF] save the current haystack (even if it's the same, won't hurt)
     
     if (pBitmapNeedle = "")
         return -1
-    else if (FileExist(pBitmapNeedle)){
+    if (FileExist(pBitmapNeedle)) {
         ;Load the image from the HD
         Dump_Needle := True
         pBitmapNeedle := Gdip_CreateBitmapFromFile(pBitmapNeedle)
@@ -125,8 +169,11 @@ Gdip_ImageSearch(pBitmapHayStack="Screen", pBitmapNeedle="", ByRef x="", ByRef y
     if (Variation > 255 || Variation < 0)
         return -2
     
-    Gdip_GetImageDimensions(pBitmapHayStack, hWidth, hHeight)
-    , Gdip_GetImageDimensions(pBitmapNeedle, nWidth, nHeight)
+    ; {MF} retrieve the haystack dimensions if we don't wanna use the saved data OR this information is not saved yet
+    ; {MF} (this if-statement may not be necessary, I still have to benchmark it)
+	if ( !UseLastHaystackData || !hWidth )
+        Gdip_GetImageDimensions(pBitmapHayStack, hWidth, hHeight)
+    Gdip_GetImageDimensions(pBitmapNeedle, nWidth, nHeight)
     
     if !(hWidth && hHeight && nWidth && nHeight)
         return -3
@@ -187,7 +234,7 @@ Gdip_ImageSearch(pBitmapHayStack="Screen", pBitmapNeedle="", ByRef x="", ByRef y
         return -7
     }
     
-    ;Detects to-small search boxes
+    ;Detects too small search boxes
     if ((sx2 - sx1) < 1 || (sy2 - sy1) < 1){
         if (w || h || Dump_Needle)
             Gdip_DisposeImage(pBitmapNeedle)
@@ -211,10 +258,9 @@ Gdip_ImageSearch(pBitmapHayStack="Screen", pBitmapNeedle="", ByRef x="", ByRef y
         return -9
     }
     
-    if (sx2 = 0)
-        sx2 := 1
-    if (sy2 = 0)
-        sy2 := 1
+    ; {MF} the following should be faster than 2 if-statements
+    sx2 += !sx2
+    sy2 += !sy2
     
     ;If Trans is used and the needle hasen't already been copied through scaling or loading
     ;create a copy because it might be modified by the imagesearch code
@@ -222,8 +268,7 @@ Gdip_ImageSearch(pBitmapHayStack="Screen", pBitmapNeedle="", ByRef x="", ByRef y
         pBitmapNeedle := Gdip_CloneBitmapArea(pBitmapNeedle, 0, 0, nWidth, nHeight)        
     
     ;Stride2/Scan02/BitmapData2 are used because the needle is the second image eventhough it's used first
-    E := Gdip_LockBits(pBitmapNeedle, 0, 0, nWidth, nHeight, Stride2, Scan02, BitmapData2)
-    if (E){
+    if Gdip_LockBits(pBitmapNeedle, 0, 0, nWidth, nHeight, Stride2, Scan02, BitmapData2) {
         if (w || h || Trans || Dump_Needle)
             Gdip_DisposeImage(pBitmapNeedle)
         if (Dump_HayStack)
@@ -240,19 +285,21 @@ Gdip_ImageSearch(pBitmapHayStack="Screen", pBitmapNeedle="", ByRef x="", ByRef y
         , "UInt*", suX, "UInt*", suY, "cdecl int")
         , VarSetCapacity(TempData, 0)
     } else
-        sd := sd = 0 ? 1 : sd
+        sd += !sd ; {MF} this should be faster than an if-statement
     
     ;Sets the default search-first location for variation searches if none was set yet
     suX := (suX = "" || suX = -1) ? 0 : suX
     , suY := (suY = "" || suY = -1) ? 0 : suY
     
-    if (Gdip_LockBits(pBitmapHayStack, 0, 0, hWidth, hHeight, Stride1, Scan01, BitmapData1)){
-        if (w || h || Trans || Dump_Needle)
-            Gdip_DisposeImage(pBitmapNeedle)
-        if (Dump_HayStack)
-            Gdip_DisposeImage(pBitmapHayStack)
-        return -12
-    }
+    ; {MF} lock the bits if we don't wanna use the saved data OR the bits are not locked yet
+	if (!UseLastHaystackData || !BitmapData1)
+        if (Gdip_LockBits(pBitmapHayStack, 0, 0, hWidth, hHeight, Stride1, Scan01, BitmapData1)){
+            if (w || h || Trans || Dump_Needle)
+                Gdip_DisposeImage(pBitmapNeedle)
+            if (Dump_HayStack)
+                Gdip_DisposeImage(pBitmapHayStack)
+            return -12
+        }
     
     ;The dllcall parameters are the same for easier C code modification even though they arn't all used on the _ImageSearch1 version
     x := 0, y := 0
@@ -260,7 +307,10 @@ Gdip_ImageSearch(pBitmapHayStack="Screen", pBitmapNeedle="", ByRef x="", ByRef y
     , "int", nHeight, "int", Stride1, "int", Stride2, "int", sx1, "int", sy1, "int", sx2, "int", sy2, Ptr, &Trans, "int", Variation
     , "int", sd, "int", suX, "int", suY, "cdecl int")
     
-    Gdip_UnlockBits(pBitmapHayStack, BitmapData1), Gdip_UnlockBits(pBitmapNeedle, BitmapData2)
+    ; {MF} unlock the bits of the current haystack if we don't want to keep it
+    if !UseLastHaystackData
+	    Gdip_UnlockBits(pBitmapHayStack, BitmapData1)
+	Gdip_UnlockBits(pBitmapNeedle, BitmapData2)
     
     if (w || h || Trans || Dump_Needle)
         Gdip_DisposeImage(pBitmapNeedle)
