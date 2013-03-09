@@ -1,6 +1,6 @@
 ;**********************************************************************************
 ;
-; Gdip_FastImageSearch() - 08/MARCH/2013 18:45h BRT
+; Gdip_FastImageSearch() - 08/MARCH/2013 21:00h BRT
 ; by MasterFocus, based on previous work by tic and Rseding91
 ; http://www.autohotkey.com/board/topic/71100-gdip-imagesearch/
 ;
@@ -168,27 +168,27 @@ Gdip_FastImageSearch(pBitmapHayStack="",pBitmapNeedle="",ByRef x="",ByRef y="",s
         , DllCall("VirtualProtect", Ptr, &_PixelAverage, Ptr, VarSetCapacity(_PixelAverage), "uint", 0x40, PtrA, 0)
     }
     
-    If UseLastHaystackData && lastHaystack ; {MF] if there IS a previous haystack, it's ok to use it
+    If ( UseLastHaystackData && lastHaystack ) ; {MF] if there IS a previous haystack, it's ok to use it
         pBitmapHayStack := lastHaystack
     Else {
         ;Alows the MCode to be setup before imagesearch is really needed
         if (pBitmapHayStack = "")
             return -1
         if (pBitmapHayStack = "Screen") {
-            Dump_Haystack := True
+            Dump_Haystack := !UseLastHaystackData ; {MF} also, only dump if we're not saving/reusing it
             pBitmapHayStack := Gdip_BitmapFromScreen()
         }
     }
     lastHaystack := pBitmapHayStack ; {MF] save the current haystack (even if it's the same, won't hurt)
     
-    If UseLastNeedleData && lastNeedle ; {MF] if there IS a previous needle, it's ok to use it
+    If ( UseLastNeedleData && lastNeedle ) ; {MF] if there IS a previous needle, it's ok to use it
         pBitmapNeedle := lastNeedle
     Else {
         if (pBitmapNeedle = "")
             return -1
         if (FileExist(pBitmapNeedle)) {
             ;Load the image from the HD
-            Dump_Needle := True
+            Dump_Needle := !UseLastNeedleData ; {MF} also, only dump if we're not saving/reusing it
             pBitmapNeedle := Gdip_CreateBitmapFromFile(pBitmapNeedle)
         }
     }
@@ -358,7 +358,6 @@ Gdip_FastImageSearch(pBitmapHayStack="",pBitmapNeedle="",ByRef x="",ByRef y="",s
     if !UseLastNeedleData
     {
         Gdip_UnlockBits(pBitmapNeedle, BitmapData2)
-        ; {MF} do not reset nWidth/nHeight because they're ByRef parameters 
         Stride2 := Scan02 := BitmapData2 := nWidth := nHeight := ""
         lastNeedle := ""
     }
