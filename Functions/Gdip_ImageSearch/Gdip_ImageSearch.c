@@ -1,5 +1,6 @@
-// Original C code for Gdip_ImageSearch()
+// Latest C code used to generate the MCode required to perform a GDIP ImageSearch
 // by tic and Rseding91
+// Posted 24 July 2012 - 02:34 AM
 // http://www.autohotkey.com/board/topic/71100-gdip-imagesearch/?p=527765
 
 int Gdip_ImageSearch1(int * Foundx, int * Foundy, unsigned char * HayStack, unsigned char * Needle, int nw, int nh, int Stride1, int Stride2, int sx1, int sy1, int sx2, int sy2, unsigned char * Trans, int v, int sd, int suX, int suY)
