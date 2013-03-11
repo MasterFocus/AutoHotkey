@@ -251,7 +251,7 @@ Gdip_LockedBitsSearch(hStride,hScan,hWidth,hHeight,nStride,nScan,nWidth,nHeight
         , VarSetCapacity(TempData, 0)
     }
     else
-        sd += !sd ; becomes 0 if it's 1, and stays unaltered otherwise
+        sd += !sd ; Becomes 1 if it's 0. Stays unaltered otherwise.
     
     ; Set the default search-first location for variation searches if none was set yet
     suX := (suX = "" || suX = -1) ? 0 : suX   ,   suY := (suY = "" || suY = -1) ? 0 : suY
@@ -283,6 +283,7 @@ Gdip_MultiLockedBitsSearch(hStride,hScan,hWidth,hHeight,nStride,nScan,nWidth,nHe
 ,ByRef OutputList="",OuterX1=0,OuterY1=0,OuterX2=0,OuterY2=0,Variation=0,Trans=0
 ,SearchDirection=0,Instances=0,LineDelim="`n",CoordDelim=",")
 {
+    OutputList := ""
     OutputCount := 0 + (!Instances)
     InnerX1 := OuterX1 , InnerY1 := OuterY1
     InnerX2 := OuterX2 , InnerY2 := OuterY2

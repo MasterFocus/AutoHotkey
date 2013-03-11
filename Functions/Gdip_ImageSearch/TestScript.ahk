@@ -19,6 +19,8 @@ gdipToken := Gdip_Startup()
 bmpHaystack := Gdip_CreateBitmapFromFile("haystack.png")
 bmpNeedle := Gdip_CreateBitmapFromFile("folder.png")
 ERR := Gdip_ImageSearch(bmpHaystack,bmpNeedle,LIST,COUNT)
+Gdip_DisposeImage(bmpHaystack)
+Gdip_DisposeImage(bmpNeedle)
 Gdip_Shutdown(gdipToken)
 
 MsgBox, % "Error: " ERR "`tCount: " COUNT "`n`n" LIST
