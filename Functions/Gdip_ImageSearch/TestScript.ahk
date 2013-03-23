@@ -1,11 +1,11 @@
 ;************************************************
 ; Test script for Gdip_ImageSearch()
 ; by MasterFocus
-; 09/March/2013 09:15 BRT
+; 23/March/2013 02:00 BRT
 ;************************************************
 
 #NoEnv
-ListLines, Off
+;ListLines, Off
 SetBatchLines, -1
 Process, Priority,, High
 
@@ -15,15 +15,17 @@ Process, Priority,, High
 OnExit, EXIT_LABEL
 
 gdipToken := Gdip_Startup()
+
+;;SLEEP, 2000
 ;;bmpHaystack := Gdip_BitmapFromScreen()
-bmpHaystack := Gdip_CreateBitmapFromFile("haystack.png")
-bmpNeedle := Gdip_CreateBitmapFromFile("folder.png")
-ERR := Gdip_ImageSearch(bmpHaystack,bmpNeedle,LIST,COUNT)
+
+bmpHaystack := Gdip_CreateBitmapFromFile("T_002_haystack-novo.png")
+bmpNeedle := Gdip_CreateBitmapFromFile("T_002_needle-novo.png")
+RET := Gdip_ImageSearch(bmpHaystack,bmpNeedle,LIST,COUNT,0,0,0,0,0,"ÿÿÿ",1,0)
 Gdip_DisposeImage(bmpHaystack)
 Gdip_DisposeImage(bmpNeedle)
 Gdip_Shutdown(gdipToken)
-
-MsgBox, % "Error: " ERR "`tCount: " COUNT "`n`n" LIST
+MsgBox, % "Returned: " RET "`tCount: " COUNT "`n`n" LIST
 
 ;; following loop used for pointing to each instance of
 ;; the needle when the haystack is the screen

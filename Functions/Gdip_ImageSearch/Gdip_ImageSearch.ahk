@@ -1,20 +1,20 @@
 ;**********************************************************************************
 ;
 ; Gdip_ImageSearch()
-; by MasterFocus - 09/MARCH/2013 09:15h BRT
+; by MasterFocus - 23/MARCH/2013 02:00h BRT
 ; Thanks to guest3456 for helping me ponder some ideas
 ; Requires GDIP and Gdip_MultiLockedBitsSearch()
 ; http://www.autohotkey.com/board/topic/71100-gdip-imagesearch/
 ;
 ; Licensed under CC BY-SA 3.0 -> http://creativecommons.org/licenses/by-sa/3.0/
-; I waive compliance with the "Share Alike" condition EXCLUSIVELY for these users:
-; - tic , Rseding91 , guest3456
+; I waive compliance with the "Share Alike" condition of the license EXCLUSIVELY
+; for these users: tic , Rseding91 , guest3456
 ;
 ;**********************************************************************************
 
 Gdip_ImageSearch(pBitmapHaystack,pBitmapNeedle,ByRef OutputList="", ByRef OutputCount=""
 ,OuterX1=0,OuterY1=0,OuterX2=0,OuterY2=0,Variation=0,Trans=0
-,SearchDirection=0,Instances=0,LineDelim="`n",CoordDelim=",") {
+,SearchDirection=1,Instances=0,LineDelim="`n",CoordDelim=",") {
 
     ; Some validations that can be done before proceeding any further
     If ( (pBitmapHaystack == "") OR (pBitmapNeedle == "") )
@@ -23,30 +23,52 @@ Gdip_ImageSearch(pBitmapHaystack,pBitmapNeedle,ByRef OutputList="", ByRef Output
         return -1002
     If ( ( OuterX1 < 0 ) || ( OuterY1 < 0 ) )
         return -1003
-    If SearchDirection not between 0 and 4
+    If SearchDirection not between 1 and 4
         SearchDirection := 1
     If ( Instances < 0 )
         Instances := 0
 
     ; Getting the dimensions and locking the bits [haystack]
     Gdip_GetImageDimensions(pBitmapHaystack,hWidth,hHeight)
-    If Gdip_LockBits(pBitmapHaystack,0,0,hWidth,hHeight,hStride,hScan,hBitmapData)
+    ; Last parameter being 1 says the LockMode flag is "READ only"
+    If Gdip_LockBits(pBitmapHaystack,0,0,hWidth,hHeight,hStride,hScan,hBitmapData,1)
     OR !(hWidth := NumGet(hBitmapData,0))
     OR !(hHeight := NumGet(hBitmapData,4))
         Return -1004
 
+    ; Careful! From this point on, we must do the following before returning:
+    ; - unlock haystack bits
+
     ; Getting the dimensions and locking the bits [needle]
     Gdip_GetImageDimensions(pBitmapNeedle,nWidth,nHeight)
     ; If Trans is used, create a copy because it might be modified by the ImageSearch MCode
-    ; This has to be done before locking the bits
+    ; Also, if a copy is created, we must be able to dispose this new bitmap later
+    ; This whole thing has to be done before locking the bits
     If Trans
-        pBitmapNeedle := Gdip_CloneBitmapArea(pBitmapNeedle,0,0,nWidth,nHeight)
+    {
+        pOriginalBmpNeedle := pBitmapNeedle
+        pBitmapNeedle := Gdip_CloneBitmapArea(pOriginalBmpNeedle,0,0,nWidth,nHeight)
+        DumpCurrentNeedle := true
+    }
+
+    ; Careful! From this point on, we must do the following before returning:
+    ; - unlock haystack bits
+    ; - dispose current needle bitmap (if necessary)
+
     If Gdip_LockBits(pBitmapNeedle,0,0,nWidth,nHeight,nStride,nScan,nBitmapData)
     OR !(nWidth := NumGet(nBitmapData,0))
     OR !(nHeight := NumGet(nBitmapData,4))
+    {
+        If ( DumpCurrentNeedle )
+            Gdip_DisposeImage(pBitmapNeedle)
+        Gdip_UnlockBits(pBitmapHaystack,hBitmapData)
         Return -1005
-
-    ; Careful: from this point on, we must unlock the bits before returning
+    }
+    
+    ; Careful! From this point on, we must do the following before returning:
+    ; - unlock haystack bits
+    ; - unlock needle bits
+    ; - dispose current needle bitmap (if necessary)
 
     ; Adjust the search box. "OuterX2,OuterY2" will be the last pixel evaluated
     ; as possibly matching with the needle's first pixel. So, we must avoid going
@@ -54,36 +76,14 @@ Gdip_ImageSearch(pBitmapHaystack,pBitmapNeedle,ByRef OutputList="", ByRef Output
     OuterX2 := ( !OuterX2 ? hWidth-nWidth+1 : OuterX2-nWidth+1 )
     OuterY2 := ( !OuterY2 ? hHeight-nHeight+1 : OuterY2-nHeight+1 )
 
-    /*
-    If ( (OuterX2-OuterX1 < 1) || (OuterY2-OuterY1 < 1) )
-    {
-        Gdip_UnlockBits(pBitmapHaystack,hBitmapData)
-        Gdip_UnlockBits(pBitmapNeedle,nBitmapData)
-        return -1006
-    }
-    
-    If ( OuterX2 > (hWidth-nWidth+1) )
-        OuterX2 := hWidth-nWidth+1
-    If ( OuterY2 > (hHeight-nHeight+1) )
-        OuterY2 := hHeight-nHeight+1
-    
-    If ( (OuterX2<OuterX1) || (OuterY2<OuterY1) )
-    {
-        Gdip_UnlockBits(pBitmapHaystack,hBitmapData)
-        Gdip_UnlockBits(pBitmapNeedle,nBitmapData)
-        return -1007
-    }
-    
-    OuterX2 += !OuterX2
-    OuterY2 += !OuterY2
-    */
-    
     OutputCount := Gdip_MultiLockedBitsSearch(hStride,hScan,hWidth,hHeight
     ,nStride,nScan,nWidth,nHeight,OutputList,OuterX1,OuterY1,OuterX2,OuterY2
     ,Variation,Trans,SearchDirection,Instances,LineDelim,CoordDelim)
 
     Gdip_UnlockBits(pBitmapHaystack,hBitmapData)
     Gdip_UnlockBits(pBitmapNeedle,nBitmapData)
+    If ( DumpCurrentNeedle )
+        Gdip_DisposeImage(pBitmapNeedle)
 
     Return 0
 }
@@ -91,15 +91,15 @@ Gdip_ImageSearch(pBitmapHaystack,pBitmapNeedle,ByRef OutputList="", ByRef Output
 ;**********************************************************************************
 ;
 ; Gdip_LockedBitsSearch(), previously called Gdip_ImageSearch()
-; by MasterFocus - 09/MARCH/2013 09:15h BRT
+; by MasterFocus - 23/MARCH/2013 02:00h BRT
 ; Mostly adapted from previous work by tic and Rseding91
 ;
 ; Requires GDIP
 ; http://www.autohotkey.com/board/topic/71100-gdip-imagesearch/
 ;
 ; Licensed under CC BY-SA 3.0 -> http://creativecommons.org/licenses/by-sa/3.0/
-; I waive compliance with the "Share Alike" condition EXCLUSIVELY for these users:
-; - tic , Rseding91 , guest3456
+; I waive compliance with the "Share Alike" condition of the license EXCLUSIVELY
+; for these users: tic , Rseding91 , guest3456
 ;
 ;**********************************************************************************
 
@@ -125,94 +125,111 @@ Gdip_ImageSearch(pBitmapHaystack,pBitmapNeedle,ByRef OutputList="", ByRef Output
 ;
 ; sd
 ;   Search direction:
-;   0 = auto detect best direction [default]
-;   1 = left->right, top->bottom ;; 2 = left->right, bottom->top
-;   3 = right->left, bottom->top ;; 4 = right->left, top->bottom
+;   1 = top->left->right->bottom [default]
+;   2 = bottom->left->right->top
+;   3 = bottom->right->left->top (NOT WORKING!)
+;   4 = top->right->left->bottom (NOT WORKING!)
 ;   This value is passed to the internal MCoded function
 ;
 ;==================================================================================
 
 Gdip_LockedBitsSearch(hStride,hScan,hWidth,hHeight,nStride,nScan,nWidth,nHeight
-,ByRef x="",ByRef y="",sx1=0,sy1=0,sx2=0,sy2=0,Variation=0,Trans=0,sd=0)
+,ByRef x="",ByRef y="",sx1=0,sy1=0,sx2=0,sy2=0,Variation=0,Trans=0,sd=1)
 {
-    static _ImageSearch1, _ImageSearch2, _PixelAverage, Ptr, PtrA
+    static _ImageSearch, Ptr, PtrA
 
     ; Initialize all MCode stuff, if necessary
-    if !_ImageSearch1
+    if !_ImageSearch
     {
         Ptr := A_PtrSize ? "UPtr" : "UInt"
         , PtrA := A_PtrSize ? "UPtr*" : "UInt*"
-        
-        MCode_ImageSearch1 := "8B4C243483EC10803900538B5C2434555657750C80790100750680790200744B8B54243885D27E478B7C2430478BEA908B7424"
-        . "3485F67E2C8BC78D9B000000008A50013A510275128A103A5101750B8A50FF3A117504C640020083C0044E75E08B54243803FB4D75C7EB048B5424388B"
-        . "4424488944241C3B4424500F8D800200008B4C243C8BF90FAFF88D4402FF0FAFC1897C2418894424148DA424000000008B742444897424543B74244C0F"
-        . "8D300200008B74245C83FE0175648B6C243033D2453B5424380F8D5402000033F6397424347E428B4C24548B5C242C8D0C8F8BC58D4C19018A58013A59"
-        . "01750E8A183A1975088A58FF3A59FF740A807802000F85B60100004683C10483C0043B7424347CD38B5C2440037C243C4203EBEBA383FE020F85860000"
-        . "008BF88BC14A8BCBF7D8F7D98BF20FAFF38B5C243089442410894C24488D6C1E01EB068D9B0000000083FAFF0F8EC701000033F6397424347E468B4C24"
-        . "548B5C242C8D0C8F8BC58D4C19018A58013A5901750E8A183A1975088A58FF3A59FF740A807802000F85290100004683C10483C0043B7424347CD38B44"
-        . "24108B4C244803F84A03E9EBA283FE030F85840000004A8BFAF7D90FAFFB8BF3F7DE8BE8894C2410897424488D490083FAFF0F8E470100008B44243448"
-        . "83F8FF7E518B7424308B5C242C8D0C878D4C31018B74245403F08D74B5008D741E018A59013A5E01750E8A193A1E75088A59FF3A5EFF740A807902000F"
-        . "859B0000004883EE0483E90483F8FF7FD48B7424488B4C241003E94A03FEEB9583FE040F85DC00000033ED896C24488D9B00000000395424480F8DC600"
-        . "00008B4424344883F8FF7E4D8B4C24308B74242C8D5485008D4C0A018B54245403D08D14978D7432018A51013A5601750E8A113A1675088A51FF3A56FF"
-        . "74068079020075224883EE0483E90483F8FF7FD88B5424388B4C243CFF44244803F903EBEB958B5C24408B4424548B7C24188B5424388B4C243C403B44"
-        . "244C894424548B4424140F8CD0FDFFFF8B74241C4603C103F98974241C89442414897C24183B7424500F8C9FFDFFFF8B4C24248B5424285F5E5DC701FF"
-        . "FFFFFFC702FFFFFFFF83C8FF5B83C410C38B4424248B4C24548B5424285F89088B4424185E5D890233C05B83C410C3"
-        
-        MCode_ImageSearch2 := "8B4C24348B54241883EC2C803900538B5C2450555657750C80790100750680790200744E8B6C244C85D27E4A8D7D0189542470"
-        . "8B74245085F67E298BC78D49008A50013A510275128A103A5101750B8A50FF3A117504C640020083C0044E75E08B6C244C03FBFF4C247075C78B542454"
-        . "EB048B6C244C8B442464894424183B44246C0F8D0C0400008B7C24588B74247C8BCF0FAFC8894C24148B8C248000000003C88D4402FF0FAFCF0FAFC789"
-        . "4424108B442474894C2430EB068D9B000000008B4C2460894C24643B4C24680F8DA40300008BD30FAF94248000000003D58D0CB20FB611894C24348B4C"
-        . "246003CE8B7424308D0C8E034C244889542438894C242CEB048B4C242C0FB6098D34013BD67F062BC83BD17D0E8B4C2434807903000F85350300008B4C"
-        . "247883F9010F85AD0000008B742414C7442470000000008D4D018B542470894C2424897424283B5424540F8D5C03000033ED396C24507E698B5424648D"
-        . "14968B7424488D7432018BFF0FB656010FB679018D1C023BFB7F2E2BD03BFA7C280FB6160FB6398D1C023BFB7F1B2BD03BFA7C150FB656FF0FB679FF8D"
-        . "1C023BFB7F062BD03BFA7D0A807902000F85930200004583C60483C1043B6C24507CAC8B5C245C8B7424288B4C242403742458FF44247003CBE962FFFF"
-        . "FF83F9020F85C60000008B5424108B4C2454498954241C8BD78BF3F7DAF7DE8BF90FAFFB8D7C2F018954242889742424897C2420894C247083F9FF0F8E"
-        . "9402000033ED396C24507E798B74241C8B5424648B4C24208D14968B7424488D7432018BFF0FB656010FB679018D1C023BFB7F2E2BD03BFA7C280FB616"
-        . "0FB6398D1C023BFB7F1B2BD03BFA7C150FB656FF0FB679FF8D1C023BFB7F062BD03BFA7D0A807902000F85C30100004583C60483C1043B6C24507CAC8B"
-        . "7424248B5424288B4C24700154241C4901742420E964FFFFFF83F9030F85D80000008B5424548B4C24104A894C24208BF78BCAF7DE0FAFCB8BFBF7DF89"
-        . "742428897C2424894C241C8954247083FAFF0F8EC90100008B6C24504D83FDFF0F8E8B0000008B7424208D14A98B4C244C8D4C0A018B54246403D58D14"
-        . "968B7424488D543201EB068D9B000000000FB672010FB679018D1C063BFB7F2E2BF03BFE7C280FB6320FB6398D1C063BFB7F1B2BF03BFE7C150FB672FF"
-        . "0FB679FF8D1C063BFB7F062BF03BFE7D0A807902000F85E30000004D83EA0483E90483FDFF7FAD8B7C24248B7424288B4C241C8B542470017424204A03"
-        . "CFE94AFFFFFF83F9040F851B0100008B74241433C9894C2470894C24288B4C2470897424243B4C24540F8DFB0000008B6C24504D83FDFF7E738B542428"
-        . "8D0CAA8B54244C8D4C11018B54246403D58D14968B7424488D5432010FB672010FB679018D1C063BFB7F2E2BF03BFE7C280FB6320FB6398D1C063BFB7F"
-        . "1B2BF03BFE7C150FB672FF0FB679FF8D1C063BFB7F062BF03BFE7D068079020075254D83EA0483E90483FDFF7FB18B5C245C8B74242403742458FF4424"
-        . "70015C2428E95CFFFFFF8B5C245C8B6C244C8B7C24588B5424388B4C24648344242C0441894C24643B4C24680F8C91FCFFFF8B74247CFF4424188B4C24"
-        . "18017C2410017C2414017C24303B4C246C0F8C2CFCFFFF8B4424408B4C24445F5EC700FFFFFFFF5DC701FFFFFFFF83C8FF5B83C42CC38B5424408B4424"
-        . "648B4C24445F89028B5424145E5D891133C05B83C42CC3"
-        
-        MCode_PixelAverage := "83EC488B4C24608B54246433C0890189028944243C894424388B44245453992BC2558B6C246456578BF88B442468992BC28B54"
-        . "24688D5D148D73148D4E14D1FF897E04D1F8894104894308897E088951088B542464897D0C89430C89560C8B54246889510C8B542464897D1089561089"
-        . "41108BC52BD92BC18BFE8D51042BF9C74424340100000089542410895C24408944242C897C2430EB178DA424000000008B5424108B5C24408B44242C8B"
-        . "7C24308B328B0C1333ED896C2468896C2464896C246C897424443BCE0F8D030100008B0410894424148B0417894424188BC10FAF4424602BF189442438"
-        . "8974243C8BFF8B7424148B4C241833DB33FF896C241C896C2420896C2424896C24283BF10F8DA00000002BCE83F9027C538B54245C8D0CB08D4C11018B"
-        . "5424182BD683EA02D1EA428D34560FB6410103F80FB60103D80FB641FF0144241C0FB64105014424280FB64104014424240FB641030144242083C1084A"
-        . "75CF8B4424388B54241033ED3B7424187D1E8D0CB0034C245C0FB67102017424680FB671010FB60901742464014C246C8B4C24248B7424200374241C03"
-        . "CB014C24648B4C24280174246C03CF014C246803442460FF4C243C894424380F852AFFFFFF8B5C24408B44242C8B7C24308B34138B3C172B3C108B0A8B"
-        . "4424682BCE0FAFCF33D2F7F133D2896C24688BF88B442464F7F133D28BD88B44246CF7F18D57198954246C8D4B1983C7E783C3E7897C243C894C243889"
-        . "5C24288D50198954242483C0E733D2894424203B7424440F8DAE0000008B4424108B4C242C8B0C01894C24148B4C24308B1C018BC60FAF442460895C24"
-        . "1C894424648D49008B7C24143BFB7D6B8B4C245C8D04B88D4C080280790100744A0FB6018BDA3B44246C7D063B44243C7F01420FB641FF3B4424387D06"
-        . "3B4424287F01420FB641FE3B4424247D063B4424207F01428BC22BC33B4424687E0C897C245089742454894424688B5C241C4783C1043BFB7CA48B4424"
-        . "640344246046894424643B7424440F8C7AFFFFFF3B5424487E208B4424708B4C2450895424488B54243489088B4424548954244C8B54247489028B4424"
-        . "348344241004408944243483F8050F8C7DFDFFFF8B44244C5F5E5D5B83C448C3"
-        
-        VarSetCapacity(_ImageSearch1, StrLen(MCode_ImageSearch1)//2, 0)
-        Loop % StrLen(MCode_ImageSearch1)//2      ;%
-            NumPut("0x" . SubStr(MCode_ImageSearch1, (2*A_Index)-1, 2), _ImageSearch1, A_Index-1, "uchar")
-        MCode_ImageSearch1 := ""
-        
-        VarSetCapacity(_ImageSearch2, 1233, 0)
-        Loop % StrLen(MCode_ImageSearch2)//2      ;%
-            NumPut("0x" . SubStr(MCode_ImageSearch2, (2*A_Index)-1, 2), _ImageSearch2, A_Index-1, "uchar")
-        MCode_ImageSearch2 := ""
-        
-        VarSetCapacity(_PixelAverage, StrLen(MCode_PixelAverage)//2, 0)
-        Loop % StrLen(MCode_PixelAverage)//2      ;%
-            NumPut("0x" . SubStr(MCode_PixelAverage, (2*A_Index)-1, 2), _PixelAverage, A_Index-1, "uchar")
-        MCode_PixelAverage := ""
-        
-        , DllCall("VirtualProtect", Ptr, &_ImageSearch1, Ptr, VarSetCapacity(_ImageSearch1), "uint", 0x40, PtrA, 0)
-        , DllCall("VirtualProtect", Ptr, &_ImageSearch2, Ptr, VarSetCapacity(_ImageSearch2), "uint", 0x40, PtrA, 0)
-        , DllCall("VirtualProtect", Ptr, &_PixelAverage, Ptr, VarSetCapacity(_PixelAverage), "uint", 0x40, PtrA, 0)
+
+        MCode_ImageSearch := "
+            (LTrim Join
+            8b4c24188b44241483ec1c5355568b74245c57803e00750c807e01007506807e0200746485c97e6033db895c24608b
+            e9894c241085c07e418b6c243c8bcb8d142b8bf8bb020000008a04133a460275148a4429013a4601750b8a023a067505c644
+            29030083c10483c2044f75db8b5c24608b6c24108b442440035c244c4d895c2460896c241075ac8b44246883f8010f856f01
+            00008b6c2454896c24683b6c245c0f8d8e0500008b4424488b5424648b4c24588b7424508bd80fafdd895c24208bfe897c24
+            603bf10f8d020100008bff33c08bf38b5c244033c989742418894c241c894424143b4424440f8dfa00000033c08944241085
+            db0f8e9b0000008b5c243c8be903d98d34beb9030000008bff803c1900745f8b4424380fb64c06028b44243c0fb67c28028d
+            04113bf87f7c2bca3bf97c768b4424380fb64c06018b44243c0fb67c28018d04113bf87f5d2bca3bf97c578b4424380fb63b
+            0fb60c068d04113bf87f452bca3bf97c3f8b442410b9030000004083c50483c30483c604894424103b4424407c878b4c241c
+            8b7424188b7c24608b5c24408b4424140374244840034c244ce92fffffff8b7c24608b4c24588b5c242047897c24603bf90f
+            8c0cffffff8b4424488b6c24688b7424504503d8896c2468895c24203b6c245c0f8cdbfeffffe94b0400008b4424308b4c24
+            6889388b4424345f5e5d890833c05b83c41cc383f8020f855d0100008b6c245c4d896c24683b6c24540f8c150400008b4424
+            488b5424648b4c24508bdd0fafd8f7d8894424108b4424588b742410895c24248bf9897c24603bc80f8dff00000033c08bf3
+            8b5c244033c989742418894c24148944241c3b4424440f8d79ffffff33c08944242085db0f8e9a0000008b5c243c8be903d9
+            8d34beb90300000090803c1900745f8b4424380fb64c06028b44243c0fb67c28028d04113bf87f7c2bca3bf97c768b442438
+            0fb64c06018b44243c0fb67c28018d04113bf87f5d2bca3bf97c578b4424380fb63b0fb60c068d04113bf87f452bca3bf97c
+            3f8b442420b9030000004083c50483c30483c604894424203b4424407c878b4c24148b7424188b7c24608b5c24408b44241c
+            0374244840034c244ce930ffffff8b7c24608b4424588b5c242447897c24603bf80f8c0dffffff8b6c24688b4c24508b7424
+            104d03de896c2468895c24243b6c24540f8ddefeffffe9cb02000083f8030f85670100008b6c245c4d896c24683b6c24540f
+            8caf0200008b4424488b7424588b5424648bdd0fafd84ef7d8894424148b4424508b4c241489742428895c24108bff8bfe89
+            7c24603bf80f8c020100008bff33c08bf38b5c244033c98974241c894c2418894424203b4424440f8d0afeffff33c0894424
+            2485db0f8e9b0000008b5c243c8be903d98d34beb9030000008bff803c1900745f8b4424380fb64c06028b44243c0fb67c28
+            028d04113bf87f7c2bca3bf97c768b4424380fb64c06018b44243c0fb67c28018d04113bf87f5d2bca3bf97c578b4424380f
+            b63b0fb60c068d04113bf87f452bca3bf97c3f8b442424b9030000004083c50483c30483c604894424243b4424407c878b4c
+            24188b74241c8b7c24608b5c24408b4424200374244840034c244ce92fffffff8b7c24608b4424508b5c24104f897c24603b
+            f80f8d0cffffff8b6c24688b4c24148b7424284d03d9896c2468895c24103b6c24540f8ddbfeffffe95b01000083f8040f85
+            520100008b6c2454896c24683b6c245c0f8d400100008b4424488b7424588b5424648b4c24504e8bd80fafdd89742428895c
+            24148bfe897c24603bf90f8cff00000033c08bf38b5c244033c98974241c894c2418894424203b4424440f8da9fcffff33c0
+            8944242485db0f8e9a0000008b5c243c8be903d98d34beb90300000090803c1900745f8b4424380fb64c06028b44243c0fb6
+            7c28028d04113bf87f7c2bca3bf97c768b4424380fb64c06018b44243c0fb67c28018d04113bf87f5d2bca3bf97c578b4424
+            380fb63b0fb604068d0c103bf97f452bc23bf87c3f8b442424b9030000004083c50483c30483c604894424243b4424407c87
+            8b4c24188b74241c8b7c24608b5c24408b4424200374244840034c244ce930ffffff8b7c24608b4c24508b5c24144f897c24
+            603bf90f8d0dffffff8b4424488b6c24688b7424284503d8896c2468895c24143b6c245c0f8cdefeffff8b4424305fc700ff
+            ffffff8b4424305e5dc700ffffffff83c8ff5b83c41cc3,4c894c24204c89442418488954241048894c240853564883e
+            c484c8b9424c00000008b9c24880000008bb4248000000041803a004d8bd9750e41807a0100750741807a0200745f85db7e5
+            b4c8b4424784c639c24980000004c8bcb49ffc0669085f67e35498bc8488bd6660f1f440000410fb642023841017516410fb
+            642013801750d410fb6023841ff7504c64102004883c10448ffca75d74d03c349ffc975bf4c8b5c24788b8424d0000000488
+            96c244048897c24384c896424304c896c24284c897424204c897c241883f8010f85bc010000448b8424a800000044898424d
+            0000000443b8424b80000000f8dba060000448ba424900000008b9424c80000008b8c24b0000000448b8c24a0000000418bc
+            4410fafc0898424c00000006690458be9443bc90f8d1a010000468d3c8d00000000666666660f1f84000000000033ed448bf
+            033ff3beb0f8d2401000033db85f60f8e94000000418bf7448bcf2bf74103f6666666660f1f8400000000004d63c14d03c34
+            180780300745a450fb65002428d040e4c63d84c035c2470410fb64b028d0411443bd07f6a2bca443bd17c63410fb64b01450
+            fb650018d0411443bd07f512bca443bd17c4a410fb60b450fb6108d0411443bd07f3a2bca443bd17c334c8b5c2478ffc3418
+            3c1043b9c24800000007c8a8bb424800000008b9c2488000000ffc54503f403bc2498000000e942ffffff8b8c24b00000008
+            b8424c00000008bb424800000004c8b5c24788b9c248800000041ffc54183c704443be90f8c0affffff448b8424d00000004
+            48b8c24a000000041ffc04103c444898424d0000000898424c0000000443b8424b80000000f8d430500004c8b5c2478e9adf
+            effff488b442460488b4c24684489288b8424d0000000890133c0e93505000083f8020f859f0100008b9424b8000000ffca8
+            99424d00000003b9424a80000000f8cf6040000448ba42490000000448b8424c8000000448b8c24a00000008bc2418bcc410
+            fafc4f7d9898c24c00000008b8c24b0000000890424448b9424c0000000458be9443bc90f8d14010000468d3c8d000000006
+            6660f1f84000000000033ed448bf033ff3beb0f8d54ffffff33db85f60f8e8d000000418bf7448bd72bf74103f64963d2490
+            3d3807a03007460440fb64a02428d04164c63d84c035c2470410fb64b02428d0401443bc87f6f412bc8443bc97c67410fb64
+            b01440fb64a01428d0401443bc87f54412bc8443bc97c4c410fb60b440fb60a428d0401443bc87f3b412bc8443bc97c334c8
+            b5c2478ffc34183c2043b9c24800000007c858bb424800000008b9c2488000000ffc54503f403bc2498000000e949ffffff8
+            b8c24b00000008b04248bb424800000004c8b5c24788b9c248800000041ffc54183c704443be90f8c15ffffff8b9424d0000
+            000448b8c24a0000000448b9424c0000000ffca4103c2899424d00000008904243b9424a80000000f8c7e0300004c8b5c247
+            8e9bafeffff83f8030f85c10100008b9424b8000000ffca899424d00000003b9424a80000000f8c4e030000448bac2490000
+            000448b9424b0000000448b8424c800000041ffca8bc2418bcd4489542404410fafc5f7d9890424898c24c00000008b8c24a
+            0000000448b8c24c0000000458be2443bd10f8c11010000468d3c950000000066660f1f84000000000033ed448bf033ff3be
+            b0f8d1601000033db85f60f8e8d000000418bf7448bd72bf74103f64963d24903d3807a03007460440fb64a02428d04164c6
+            3d84c035c2470410fb64b02428d0401443bc87f6f412bc8443bc97c67410fb64b01440fb64a01428d0401443bc87f54412bc
+            8443bc97c4c410fb60b440fb60a428d0401443bc87f3b412bc8443bc97c334c8b5c2478ffc34183c2043b9c24800000007c8
+            58bb424800000008b9c2488000000ffc54503f503bc2498000000e949ffffff8b8c24a00000008b04248bb424800000004c8
+            b5c24788b9c248800000041ffcc4183ef04443be10f8d15ffffff8b9424d0000000448b8c24c0000000448b542404ffca410
+            3c1899424d00000008904243b9424a80000000f8cd10100004c8b5c2478e9bdfeffff488b442460488b4c24684489208b842
+            4d0000000890133c0e9c301000083f8040f85a1010000448b8424a800000044898424d0000000443b8424b80000000f8d830
+            10000448ba42490000000448b8c24b00000008b9424c80000008b8c24a000000041ffc9418bc444894c2404410fafc089842
+            4c00000000f1f00458be9443bc90f8c17010000468d3c8d00000000666666660f1f84000000000033ed448bf033ff3beb0f8
+            de4fbffff33db85f60f8e94000000418bf7448bcf2bf74103f6666666660f1f8400000000004d63c14d03c34180780300745
+            a450fb65002418d04314c63d84c035c2470410fb64b028d0411443bd07f6a2bca443bd17c63410fb64b01450fb650018d041
+            1443bd07f512bca443bd17c4a410fb603450fb6108d0c10443bd17f3a2bc2443bd07c334c8b5c2478ffc34183c1043b9c248
+            00000007c8a8bb424800000008b9c2488000000ffc54503f403bc2498000000e942ffffff8b8c24a00000008b8424c000000
+            08bb424800000004c8b5c24788b9c248800000041ffcd4183ef04443be90f8d0affffff448b8424d0000000448b4c240441f
+            fc04103c444898424d0000000898424c0000000443b8424b80000007d0a4c8b5c2478e9b4feffff488b442460488b4c2468c
+            700ffffffffc701ffffffff83c8ff4c8b7c24184c8b7424204c8b6c24284c8b642430488b7c2438488b6c24404883c4485e5bc3
+            )"
+        if ( A_PtrSize == 8 ) ; x64, after comma
+            MCode_ImageSearch := SubStr(MCode_ImageSearch,InStr(MCode_ImageSearch,",")+1)
+        else ; x86, before comma
+            MCode_ImageSearch := SubStr(MCode_ImageSearch,1,InStr(MCode_ImageSearch,",")-1)
+        VarSetCapacity(_ImageSearch, LEN := StrLen(MCode_ImageSearch)//2, 0)
+        Loop, %LEN%
+            NumPut("0x" . SubStr(MCode_ImageSearch, (2*A_Index)-1, 2), _ImageSearch, A_Index-1, "uchar")
+        MCode_ImageSearch := ""
+        DllCall("VirtualProtect", Ptr, &_ImageSearch, Ptr, VarSetCapacity(_ImageSearch), "uint", 0x40, PtrA, 0)
+
     }
 
     ; Abort if an initial coordinates is located before a final coordinate
@@ -240,68 +257,78 @@ Gdip_LockedBitsSearch(hStride,hScan,hWidth,hHeight,nStride,nScan,nWidth,nHeight
     ;sx2 += !sx2
     ;sy2 += !sy2
 
-    ; Average the needle in 4 chunks, counting the number of pixels (R, G & B) that
-    ; aren't +-25 of the average color and set the search code to scan that corner first
-    ; when matching the image. Also, set a "Check this pixel first" location for the
-    ; haystack instead of always starting at the corner of the image (0/0, w/h, ...)
-    if (sd = 0 And nWidth >= 20 And nHeight >= 20){
-        VarSetCapacity(TempData, 5*4*4, 0) ; 5 entires at 4 entires each at 4 bytes each
-        , sd := DllCall(&_PixelAverage, Ptr, nScan, "Int", nStride, "Int", nWidth, "Int", nHeight, Ptr, &TempData
-        , "UInt*", suX, "UInt*", suY, "cdecl int")
-        , VarSetCapacity(TempData, 0)
-    }
-    else
-        sd += !sd ; Becomes 1 if it's 0. Stays unaltered otherwise.
-    
-    ; Set the default search-first location for variation searches if none was set yet
-    suX := (suX = "" || suX = -1) ? 0 : suX   ,   suY := (suY = "" || suY = -1) ? 0 : suY
-    
     ; The DllCall parameters are the same for easier C code modification,
-    ; even though they aren't all used on the _ImageSearch1 version
+    ; even though they aren't all used on the _ImageSearch version
     x := 0, y := 0
-    , E := DllCall((Variation = 0 ? &_ImageSearch1 : &_ImageSearch2), "int*", x, "int*", y, Ptr, hScan, Ptr, nScan, "int", nWidth
-    , "int", nHeight, "int", hStride, "int", nStride, "int", sx1, "int", sy1, "int", sx2, "int", sy2, Ptr, &Trans, "int", Variation
-    , "int", sd, "int", suX, "int", suY, "cdecl int")
-    
+    , E := DllCall( &_ImageSearch, "int*",x, "int*",y, Ptr,hScan, Ptr,nScan, "int",nWidth, "int",nHeight
+    , "int",hStride, "int",nStride, "int",sx1, "int",sy1, "int",sx2, "int",sy2, Ptr,&Trans, "int",Variation
+    , "int",sd, "cdecl int")
     return (E = "") ? -1107 : E
 }
 
 ;**********************************************************************************
 ;
 ; Gdip_MultiLockedBitsSearch(), previously called Gdip_ImageSearchList()
-; by MasterFocus - 09/MARCH/2013 09:15h BRT
+; by MasterFocus - 23/MARCH/2013 02:00h BRT
 ; Requires GDIP and Gdip_LockedBitsSearch()
 ; http://www.autohotkey.com/board/topic/71100-gdip-imagesearch/
 ;
 ; Licensed under CC BY-SA 3.0 -> http://creativecommons.org/licenses/by-sa/3.0/
-; I waive compliance with the "Share Alike" condition EXCLUSIVELY for these users:
-; - tic , Rseding91 , guest3456
+; I waive compliance with the "Share Alike" condition of the license EXCLUSIVELY
+; for these users: tic , Rseding91 , guest3456
 ;
 ;**********************************************************************************
 
 Gdip_MultiLockedBitsSearch(hStride,hScan,hWidth,hHeight,nStride,nScan,nWidth,nHeight
 ,ByRef OutputList="",OuterX1=0,OuterY1=0,OuterX2=0,OuterY2=0,Variation=0,Trans=0
-,SearchDirection=0,Instances=0,LineDelim="`n",CoordDelim=",")
+,SearchDirection=1,Instances=0,LineDelim="`n",CoordDelim=",")
 {
     OutputList := ""
-    OutputCount := 0 + (!Instances)
+    OutputCount := !Instances
     InnerX1 := OuterX1 , InnerY1 := OuterY1
     InnerX2 := OuterX2 , InnerY2 := OuterY2
-    While ( !(OutputCount == Instances) && !Gdip_LockedBitsSearch(hStride,hScan,hWidth,hHeight,nStride,nScan
-    ,nWidth,nHeight,FoundX,FoundY,OuterX1,OuterY1,OuterX2,OuterY2,Variation,Trans,SearchDirection) )
+    While (!(OutputCount == Instances) && !Gdip_LockedBitsSearch(hStride,hScan,hWidth,hHeight,nStride
+    ,nScan,nWidth,nHeight,FoundX,FoundY,OuterX1,OuterY1,OuterX2,OuterY2,Variation,Trans,SearchDirection))
     {
         OutputCount++
         OutputList .= LineDelim FoundX CoordDelim FoundY
-        OuterY1 := FoundY+1
-        InnerX1 := FoundX+1
-        InnerY1 := FoundY
-        InnerY2 := InnerY1+1
-        While ( !(OutputCount == Instances) && !Gdip_LockedBitsSearch(hStride,hScan,hWidth,hHeight,nStride,nScan
-        ,nWidth,nHeight,FoundX,FoundY,InnerX1,InnerY1,InnerX2,InnerY2,Variation,Trans,SearchDirection) )
+        If ( SearchDirection == 1 ) {
+            OuterY1 := FoundY+1
+            InnerX1 := FoundX+1
+            InnerY1 := FoundY
+            InnerY2 := InnerY1+1
+        }
+        Else If ( SearchDirection == 2 ) {
+            OuterY2 := FoundY
+            InnerX1 := FoundX+1
+            InnerY1 := FoundY
+            InnerY2 := InnerY1+1
+        }
+        Else If ( SearchDirection == 3 ) {
+            OuterY2 := FoundY ; -1
+            InnerX2 := FoundX ; -1
+            InnerY1 := FoundY
+            InnerY2 := InnerY1+1
+        }
+        Else If ( SearchDirection == 4 ) {
+            OuterY1 := FoundY+1
+            InnerX2 := FoundX ; -1
+            InnerY1 := FoundY
+            InnerY2 := InnerY1+1
+        }
+        While (!(OutputCount == Instances) && !Gdip_LockedBitsSearch(hStride,hScan,hWidth,hHeight,nStride
+        ,nScan,nWidth,nHeight,FoundX,FoundY,InnerX1,InnerY1,InnerX2,InnerY2,Variation,Trans,SearchDirection))
         {
             OutputCount++
             OutputList .= LineDelim FoundX CoordDelim FoundY
-            InnerX1 := FoundX+1
+            If ( SearchDirection == 1 )
+                InnerX1 := FoundX+1
+            Else If ( SearchDirection == 2 )
+                InnerX1 := FoundX+1
+            Else If ( SearchDirection == 3 )
+                InnerX2 := FoundX ; -1
+            Else If ( SearchDirection == 4 )
+                InnerX2 := FoundX ; -1
         }
     }
     OutputList := SubStr(OutputList,1+StrLen(LineDelim))
