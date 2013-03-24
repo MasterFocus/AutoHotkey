@@ -21,7 +21,7 @@ gdipToken := Gdip_Startup()
 
 bmpHaystack := Gdip_CreateBitmapFromFile("T_002_haystack-novo.png")
 bmpNeedle := Gdip_CreateBitmapFromFile("T_002_needle-novo.png")
-RET := Gdip_ImageSearch(bmpHaystack,bmpNeedle,LIST,COUNT,0,0,0,0,0,"ÿÿÿ",1,0)
+RET := Gdip_ImageSearch(bmpHaystack,bmpNeedle,LIST,COUNT,0,0,0,0,0,0xFFFFFF)
 Gdip_DisposeImage(bmpHaystack)
 Gdip_DisposeImage(bmpNeedle)
 Gdip_Shutdown(gdipToken)

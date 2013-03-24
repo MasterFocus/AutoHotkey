@@ -1,7 +1,7 @@
 /**********************************************************************************
-// Latest C code used to generate the MCode required to perform a GDIP ImageSearch
+// Latest C code used to generate the MCode used in Gdip_LockedBitsSearch()
 // by MasterFocus, based on original work by tic and Rseding91
-// Last modification: 23/MAR/2013 02:00 BRT
+// Last modification: 23/MAR/2013 19:00 BRT
 //
 // Licensed under CC BY-SA 3.0: http://creativecommons.org/licenses/by-sa/3.0/
 // I waive compliance with the "Share Alike" condition of the license
@@ -11,24 +11,9 @@
 // http://www.github.com/MasterFocus/
 **********************************************************************************/
 
-int Gdip_ImageSearch(int * Foundx, int * Foundy, unsigned char * HayStack, unsigned char * Needle, int nw, int nh, int Stride1, int Stride2, int sx1, int sy1, int sx2, int sy2, unsigned char * Trans, int v, int sd)
+int Gdip_ImageSearch(int * Foundx, int * Foundy, unsigned char * HayStack, unsigned char * Needle, int nw, int nh, int Stride1, int Stride2, int sx1, int sy1, int sx2, int sy2, int v, int sd)
 {
     int y1, y2, x1, x2, idxN, idxH;
-
-    // Make all needle pixels matching the Trans color fully transparent (opacity = 0)
-    if ( Trans[0] || Trans[1] || Trans[2] ) {
-        for (y1 = 0; y1 < nh; y1++) {
-            for (x1 = 0; x1 < nw; x1++) {
-                // using idxN to calculate the needle index offset only once
-                idxN = (4*x1)+(y1*Stride2);
-                if ( Needle[idxN+2] == Trans[2]
-                &&   Needle[idxN+1] == Trans[1]
-                &&   Needle[idxN+0] == Trans[0] )
-                    Needle[idxN+3] = 0;
-            }
-        }
-    }
-
     if ( sd == 1 ) { // [default] top->bottom, left->right
         for (y1 = sy1; y1 < sy2; y1++) {
             for (x1 = sx1; x1 < sx2; x1++) {
@@ -128,3 +113,31 @@ int Gdip_ImageSearch(int * Foundx, int * Foundy, unsigned char * HayStack, unsig
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**********************************************************************************
+// Latest C code used to generate the MCode used in Gdip_SetBitmapTransColor()
+// by MasterFocus, based on original work by tic and Rseding91
+// Last modification: 23/MAR/2013 21:00 BRT
+//
+// Licensed under CC BY-SA 3.0: http://creativecommons.org/licenses/by-sa/3.0/
+// I waive compliance with the "Share Alike" condition of the license
+// exclusively for the following users: tic, Rseding91, guest3456
+//
+// http://www.autohotkey.com/board/topic/71100-gdip-imagesearch/
+// http://www.github.com/MasterFocus/
+**********************************************************************************/
+
+int Gdip_SetBitmapTransColor(unsigned char * Scan, int Width, int Height, int Stride, unsigned char * Trans)
+{
+    int x1, y1, index;
+    for (y1 = 0; y1 < Height; y1++) {
+        for (x1 = 0; x1 < Width; x1++) {
+            // using index to calculate the needle index offset only once
+            index = (4*x1)+(y1*Stride);
+            if ( Scan[index+2] == Trans[2]
+            &&   Scan[index+1] == Trans[1]
+            &&   Scan[index+0] == Trans[0] )
+                Scan[index+3] = 0;
+        }
+    }
+}
