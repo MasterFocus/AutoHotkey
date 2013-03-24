@@ -23,7 +23,7 @@ Gdip_ImageSearch(pBitmapHaystack,pBitmapNeedle,ByRef OutputList="", ByRef Output
         return -1002
     If ( ( OuterX1 < 0 ) || ( OuterY1 < 0 ) )
         return -1003
-    If SearchDirection not between 1 and 4
+    If SearchDirection not between 1 and 8
         SearchDirection := 1
     If ( Instances < 0 )
         Instances := 0
@@ -200,33 +200,50 @@ Gdip_MultiLockedBitsSearch(hStride,hScan,hWidth,hHeight,nStride,nScan,nWidth,nHe
     OutputCount := !Instances
     InnerX1 := OuterX1 , InnerY1 := OuterY1
     InnerX2 := OuterX2 , InnerY2 := OuterY2
+
+    ; The following part is a rather ugly but working hack that I
+    ; came up with to adjust the variables and their increments
+    ; according to the specified Haystack Search Direction
     /*
     Mod(SD,4) = 0 --> iX = 2 , stepX = +0 , iY = 1 , stepY = +1
     Mod(SD,4) = 1 --> iX = 1 , stepX = +1 , iY = 1 , stepY = +1
     Mod(SD,4) = 2 --> iX = 1 , stepX = +1 , iY = 2 , stepY = +0
     Mod(SD,4) = 3 --> iX = 2 , stepX = +0 , iY = 2 , stepY = +0
+    SD <= 4   ------> Vertical preference
+    SD > 4    ------> Horizontal preference
     */
+    ; Set the index and the step (for both X and Y) to +1
     iX := 1, stepX := 1, iY := 1, stepY := 1
+    ; Adjust Y variables if SD is 2, 3, 6 or 7
     Modulo := Mod(SearchDirection,4)
     If ( Modulo > 1 )
         iY := 2, stepY := 0
+    ; adjust X variables if SD is 3, 4, 7 or 8
     If !Mod(Modulo,3)
         iX := 2, stepX := 0
+    ; Set default Preference to vertical and Nonpreference to horizontal
+    P := "Y", N := "X"
+    ; adjust Preference and Nonpreference if SD is 5, 6, 7 or 8
+    If ( SearchDirection > 4 )
+        P := "X", N := "Y"
+    ; Set the Preference Index and the Nonpreference Index
+    iP := i%P%, iN := i%N%
+
     While (!(OutputCount == Instances) && !Gdip_LockedBitsSearch(hStride,hScan,hWidth,hHeight,nStride
     ,nScan,nWidth,nHeight,FoundX,FoundY,OuterX1,OuterY1,OuterX2,OuterY2,Variation,SearchDirection))
     {
         OutputCount++
         OutputList .= LineDelim FoundX CoordDelim FoundY
-        OuterY%iY% := FoundY+stepY
-        InnerX%iX% := FoundX+stepX
-        InnerY1 := FoundY
-        InnerY2 := FoundY+1
+        Outer%P%%iP% := Found%P%+step%P%
+        Inner%N%%iN% := Found%N%+step%N%
+        Inner%P%1 := Found%P%
+        Inner%P%2 := Found%P%+1
         While (!(OutputCount == Instances) && !Gdip_LockedBitsSearch(hStride,hScan,hWidth,hHeight,nStride
         ,nScan,nWidth,nHeight,FoundX,FoundY,InnerX1,InnerY1,InnerX2,InnerY2,Variation,SearchDirection))
         {
             OutputCount++
             OutputList .= LineDelim FoundX CoordDelim FoundY
-            InnerX%iX% := FoundX+stepX
+            Inner%N%%iN% := Found%N%+step%N%
         }
     }
     OutputList := SubStr(OutputList,1+StrLen(LineDelim))
