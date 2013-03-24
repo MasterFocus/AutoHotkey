@@ -10,9 +10,11 @@
 ; I waive compliance with the "Share Alike" condition of the license EXCLUSIVELY
 ; for these users: tic , Rseding91 , guest3456
 ;
+; The function returns the number of instances found, or a negative value (error)
+;
 ;**********************************************************************************
 
-Gdip_ImageSearch(pBitmapHaystack,pBitmapNeedle,ByRef OutputList="", ByRef OutputCount=""
+Gdip_ImageSearch(pBitmapHaystack,pBitmapNeedle,ByRef OutputList=""
 ,OuterX1=0,OuterY1=0,OuterX2=0,OuterY2=0,Variation=0,Trans=""
 ,SearchDirection=1,Instances=0,LineDelim="`n",CoordDelim=",") {
 
@@ -87,7 +89,7 @@ Gdip_ImageSearch(pBitmapHaystack,pBitmapNeedle,ByRef OutputList="", ByRef Output
     If ( DumpCurrentNeedle )
         Gdip_DisposeImage(pBitmapNeedle)
 
-    Return 0
+    Return OutputCount
 }
 
 ;///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -112,12 +114,23 @@ Gdip_ImageSearch(pBitmapHaystack,pBitmapNeedle,ByRef OutputList="", ByRef Output
 ; This function modifies the Alpha component for all pixels of a certain color to 0
 ; The returned value is 0 in case of success, or a negative number otherwise
 ;
+; ++ PARAMETERS ++
+;
 ; pBitmap
 ;   A valid pointer to the bitmap that will be modified
 ;
 ; TransColor
 ;   The color to become transparent
 ;   Should range from 0 (black) to 0xFFFFFF (white)
+;
+; ++ RETURN VALUES ++
+;
+; -2001 ==> invalid bitmap pointer
+; -2002 ==> invalid TransColor
+; -2003 ==> unable to retrieve bitmap positive dimensions
+; -2004 ==> unable to lock bitmap bits
+; -2005 ==> DllCall failed (see ErrorLevel)
+; 0 or a positive value ==> the number of pixels modified by this function
 ;
 ;==================================================================================
 
@@ -145,13 +158,14 @@ Gdip_SetBitmapTransColor(pBitmap,TransColor) {
         DllCall("VirtualProtect", Ptr, &_SetBmpTrans, Ptr, VarSetCapacity(_SetBmpTrans), "uint", 0x40, PtrA, 0)
     }
     If !pBitmap
-        Return -1
+        Return -2001
     If TransColor not between 0 and 0xFFFFFF
-        Return -2
+        Return -2002
     Gdip_GetImageDimensions(pBitmap,W,H)
     If !(W && H)
-        Return -3
-    Gdip_LockBits(pBitmap,0,0,W,H,Stride,Scan,BitmapData)
+        Return -2003
+    If Gdip_LockBits(pBitmap,0,0,W,H,Stride,Scan,BitmapData)
+        Return -2004
     ; The following code should be slower than using the MCode approach,
     ; but will the kept here for now, just for reference.
     /*
@@ -169,10 +183,15 @@ Gdip_SetBitmapTransColor(pBitmap,TransColor) {
     ; Thanks guest3456 for helping with this solution involving NumPut
     Gdip_FromARGB(TransColor,A,R,G,B), TransColor := "", VarSetCapacity(TransColor,3,255)
     NumPut(B,TransColor,0,"UChar"), NumPut(G,TransColor,1,"UChar"), NumPut(R,TransColor,2,"UChar")
-    If DllCall( &_SetBmpTrans, Ptr,Scan, "int",W, "int",H, "int",Stride, Ptr,&TransColor, "cdecl int")
-        Return 4
+    ; _SELF_REMINDER_ - this will be implemented to count the number of modified pixels
+    MCount := 0
+    E := DllCall( &_SetBmpTrans, Ptr,Scan, "int",W, "int",H, "int",Stride, Ptr,&TransColor, "cdecl int")
     Gdip_UnlockBits(pBitmap,BitmapData)
-    Return 0
+    If ( E != 0 ) {
+        ErrorLevel := E
+        Return -2005
+    }
+    Return MCount
 }
 
 ;///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -229,8 +248,8 @@ Gdip_MultiLockedBitsSearch(hStride,hScan,hWidth,hHeight,nStride,nScan,nWidth,nHe
     ; Set the Preference Index and the Nonpreference Index
     iP := i%P%, iN := i%N%
 
-    While (!(OutputCount == Instances) && !Gdip_LockedBitsSearch(hStride,hScan,hWidth,hHeight,nStride
-    ,nScan,nWidth,nHeight,FoundX,FoundY,OuterX1,OuterY1,OuterX2,OuterY2,Variation,SearchDirection))
+    While (!(OutputCount == Instances) && (0 == Gdip_LockedBitsSearch(hStride,hScan,hWidth,hHeight,nStride
+    ,nScan,nWidth,nHeight,FoundX,FoundY,OuterX1,OuterY1,OuterX2,OuterY2,Variation,SearchDirection)))
     {
         OutputCount++
         OutputList .= LineDelim FoundX CoordDelim FoundY
@@ -238,8 +257,8 @@ Gdip_MultiLockedBitsSearch(hStride,hScan,hWidth,hHeight,nStride,nScan,nWidth,nHe
         Inner%N%%iN% := Found%N%+step%N%
         Inner%P%1 := Found%P%
         Inner%P%2 := Found%P%+1
-        While (!(OutputCount == Instances) && !Gdip_LockedBitsSearch(hStride,hScan,hWidth,hHeight,nStride
-        ,nScan,nWidth,nHeight,FoundX,FoundY,InnerX1,InnerY1,InnerX2,InnerY2,Variation,SearchDirection))
+        While (!(OutputCount == Instances) && (0 == Gdip_LockedBitsSearch(hStride,hScan,hWidth,hHeight,nStride
+        ,nScan,nWidth,nHeight,FoundX,FoundY,InnerX1,InnerY1,InnerX2,InnerY2,Variation,SearchDirection)))
         {
             OutputCount++
             OutputList .= LineDelim FoundX CoordDelim FoundY
@@ -272,6 +291,8 @@ Gdip_MultiLockedBitsSearch(hStride,hScan,hWidth,hHeight,nStride,nScan,nWidth,nHe
 
 ;==================================================================================
 ;
+; ++ PARAMETERS ++
+;
 ; hStride, hScan, hWidth and hHeight
 ;   Haystack stuff, extracted from a BitmapData, extracted from a Bitmap
 ;
@@ -303,6 +324,12 @@ Gdip_MultiLockedBitsSearch(hStride,hScan,hWidth,hHeight,nStride,nScan,nWidth,nHe
 ;       7 = right->bottom->top->left
 ;       8 = right->top->bottom->left
 ;   This value is passed to the internal MCoded function
+;
+; ++ RETURN VALUES ++
+;
+; -3001 to -3006 ==> search area incorrectly defined
+; -3007 ==> DllCall failed (see ErrorLevel)
+; 0 ==> DllCall succeeded (found a match)
 ;
 ;==================================================================================
 
@@ -463,23 +490,23 @@ Gdip_LockedBitsSearch(hStride,hScan,hWidth,hHeight,nStride,nScan,nWidth,nHeight
 
     ; Abort if an initial coordinates is located before a final coordinate
     If ( sx2 < sx1 )
-        return -1101
+        return -3001
     If ( sy2 < sy1 )
-        return -1102
+        return -3002
 
     ; Check the search box. "sx2,sy2" will be the last pixel evaluated
     ; as possibly matching with the needle's first pixel. So, we must
     ; avoid going beyond this maximum final coordinate.
     If ( sx2 > (hWidth-nWidth+1) )
-        return -1103
+        return -3003
     If ( sy2 > (hHeight-nHeight+1) )
-        return -1104
+        return -3004
 
     ; Abort if the width or height of the search box is 0
     If ( sx2-sx1 == 0 )
-        return -1105
+        return -3005
     If ( sy2-sy1 == 0 )
-        return -1106
+        return -3006
 
     ; The DllCall parameters are the same for easier C code modification,
     ; even though they aren't all used on the _ImageSearch version
@@ -487,5 +514,10 @@ Gdip_LockedBitsSearch(hStride,hScan,hWidth,hHeight,nStride,nScan,nWidth,nHeight
     , E := DllCall( &_ImageSearch, "int*",x, "int*",y, Ptr,hScan, Ptr,nScan, "int",nWidth, "int",nHeight
     , "int",hStride, "int",nStride, "int",sx1, "int",sy1, "int",sx2, "int",sy2, "int",Variation
     , "int",sd, "cdecl int")
-    return (E = "") ? -1107 : E
+    ; _SELF_REMINDER_ - adjust the value returned by the MCode if a match is not found
+    If ( E != 0 ) {
+        ErrorLevel := E
+        Return -3007
+    }
+    Return 0
 }

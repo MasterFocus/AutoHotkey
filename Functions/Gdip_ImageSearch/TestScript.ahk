@@ -21,11 +21,11 @@ gdipToken := Gdip_Startup()
 
 bmpHaystack := Gdip_CreateBitmapFromFile("T-002-haystack-novo.png")
 bmpNeedle := Gdip_CreateBitmapFromFile("T-002-needle-novo.png")
-RET := Gdip_ImageSearch(bmpHaystack,bmpNeedle,LIST,COUNT,0,0,0,0,0,0xFFFFFF)
+RET := Gdip_ImageSearch(bmpHaystack,bmpNeedle,LIST,0,0,0,0,0,0xFFFFFF)
 Gdip_DisposeImage(bmpHaystack)
 Gdip_DisposeImage(bmpNeedle)
 Gdip_Shutdown(gdipToken)
-MsgBox, % "Returned: " RET "`tCount: " COUNT "`n`n" LIST
+MsgBox, % "Returned: " RET "`n`n" LIST
 
 ;; following loop used for pointing to each instance of
 ;; the needle when the haystack is the screen
