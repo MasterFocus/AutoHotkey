@@ -1,7 +1,7 @@
 ;**********************************************************************************
 ;
 ; Gdip_ImageSearch()
-; by MasterFocus - 23/MARCH/2013 21:00h BRT
+; by MasterFocus - 02/APRIL/2013 00:30h BRT
 ; Thanks to guest3456 for helping me ponder some ideas
 ; Requires GDIP, Gdip_SetBitmapTransColor() and Gdip_MultiLockedBitsSearch()
 ; http://www.autohotkey.com/board/topic/71100-gdip-imagesearch/
@@ -10,13 +10,68 @@
 ; I waive compliance with the "Share Alike" condition of the license EXCLUSIVELY
 ; for these users: tic , Rseding91 , guest3456
 ;
-; The function returns the number of instances found, or a negative value (error)
+;==================================================================================
+;
+; This function searches for pBitmapNeedle within pBitmapHaystack
+; The returned value is the number of instances found (negative = error)
+;
+; ++ PARAMETERS ++
+;
+; pBitmapHaystack and pBitmapNeedle
+;   Self-explanatory bitmap pointers, are the only required parameters
+;
+; OutputList
+;   ByRef variable to store the list of coordinates where a match was found
+;
+; OuterX1, OuterY1, OuterX2, OuterY2
+;   Equivalent to ImageSearch's X1,Y1,X2,Y2
+;   Default: 0 for all (which searches the whole haystack area)
+;
+; Variation
+;   Just like ImageSearch, a value from 0 to 255
+;   Default: 0
+;
+; Trans
+;   Needle RGB transparent color, should be a numerical value from 0 to 0xFFFFFF
+;   Default: blank (does not use transparency)
+;
+; SearchDirection
+;   Haystack search direction
+;     Vertical preference:
+;       1 = top->left->right->bottom [default]
+;       2 = bottom->left->right->top
+;       3 = bottom->right->left->top
+;       4 = top->right->left->bottom
+;     Horizontal preference:
+;       5 = left->top->bottom->right
+;       6 = left->bottom->top->right
+;       7 = right->bottom->top->left
+;       8 = right->top->bottom->left
+;
+; Instances
+;   Maximum number of instances to find when searching (0 = find all)
+;   Default: 1 (stops after one match is found)
+;
+; LineDelim and CoordDelim
+;   Outer and inner delimiters for the list of coordinates (OutputList)
+;   Defaults: "`n" and ","
+;
+; ++ RETURN VALUES ++
+;
+; -1001 ==> invalid haystack and/or needle bitmap pointer
+; -1002 ==> invalid variation value
+; -1003 ==> X1 and Y1 cannot be negative
+; -1004 ==> unable to lock haystack bitmap bits
+; -1005 ==> unable to lock needle bitmap bits
+; any non-negative value ==> the number of instances found
+;
+;==================================================================================
 ;
 ;**********************************************************************************
 
 Gdip_ImageSearch(pBitmapHaystack,pBitmapNeedle,ByRef OutputList=""
 ,OuterX1=0,OuterY1=0,OuterX2=0,OuterY2=0,Variation=0,Trans=""
-,SearchDirection=1,Instances=0,LineDelim="`n",CoordDelim=",") {
+,SearchDirection=1,Instances=1,LineDelim="`n",CoordDelim=",") {
 
     ; Some validations that can be done before proceeding any further
     If !( pBitmapHaystack && pBitmapNeedle )
@@ -99,7 +154,7 @@ Gdip_ImageSearch(pBitmapHaystack,pBitmapNeedle,ByRef OutputList=""
 ;**********************************************************************************
 ;
 ; Gdip_SetBitmapTransColor()
-; by MasterFocus - 23/MARCH/2013 21:00h BRT
+; by MasterFocus - 02/APRIL/2013 00:30h BRT
 ; Requires GDIP
 ; http://www.autohotkey.com/board/topic/71100-gdip-imagesearch/
 ;
@@ -130,7 +185,7 @@ Gdip_ImageSearch(pBitmapHaystack,pBitmapNeedle,ByRef OutputList=""
 ; -2003 ==> unable to retrieve bitmap positive dimensions
 ; -2004 ==> unable to lock bitmap bits
 ; -2005 ==> DllCall failed (see ErrorLevel)
-; 0 or a positive value ==> the number of pixels modified by this function
+; any non-negative value ==> the number of pixels modified by this function
 ;
 ;==================================================================================
 
@@ -141,11 +196,12 @@ Gdip_SetBitmapTransColor(pBitmap,TransColor) {
         PtrA := Ptr . "*"
         MCode_SetBmpTrans := "
             (LTrim Join
-            518b44241085c07e6b8b4c240c5355568b74242433ed578b7c2418896c24109085c97e3d8bc58d142f8bd9bd020000
-            008a0c2a3a4e0275148a4c38013a4e01750b8a0a3a0e7505c64438030083c00483c2044b75db8b6c24108b4424208b4c241c
-            036c242448896c24108944242075b05f5e5d5b59c3,4883ec08448bda4585c07e5948891c24458bd04c8b4424304963d
-            94c8d4901904585db7e34498bc1498bd30f1f440000410fb648023848017516410fb648013808750d410fb6083848ff7504c
-            64002004883c00448ffca75d74c03cb49ffca75bf488b1c244883c408c3
+            8b44240c558b6c241cc745000000000085c07e77538b5c2410568b74242033c9578b7c2414894c24288da424000000
+            0085db7e458bc18d1439b9020000008bff8a0c113a4e0275178a4c38013a4e01750e8a0a3a0e7508c644380300ff450083c0
+            0483c204b9020000004b75d38b4c24288b44241c8b5c2418034c242048894c24288944241c75a85f5e5b33c05dc3,405
+            34c8b5424388bda41c702000000004585c07e6448897c2410458bd84c8b4424304963f94c8d49010f1f800000000085db7e3
+            8498bc1488bd3660f1f440000410fb648023848017519410fb6480138087510410fb6083848ff7507c640020041ff024883c
+            00448ffca75d44c03cf49ffcb75bc488b7c241033c05bc3
             )"
         if ( A_PtrSize == 8 ) ; x64, after comma
             MCode_SetBmpTrans := SubStr(MCode_SetBmpTrans,InStr(MCode_SetBmpTrans,",")+1)
@@ -153,9 +209,9 @@ Gdip_SetBitmapTransColor(pBitmap,TransColor) {
             MCode_SetBmpTrans := SubStr(MCode_SetBmpTrans,1,InStr(MCode_SetBmpTrans,",")-1)
         VarSetCapacity(_SetBmpTrans, LEN := StrLen(MCode_SetBmpTrans)//2, 0)
         Loop, %LEN%
-            NumPut("0x" . SubStr(MCode_SetBmpTrans, (2*A_Index)-1, 2), _SetBmpTrans, A_Index-1, "uchar")
+            NumPut("0x" . SubStr(MCode_SetBmpTrans,(2*A_Index)-1,2), _SetBmpTrans, A_Index-1, "uchar")
         MCode_SetBmpTrans := ""
-        DllCall("VirtualProtect", Ptr, &_SetBmpTrans, Ptr, VarSetCapacity(_SetBmpTrans), "uint", 0x40, PtrA, 0)
+        DllCall("VirtualProtect", Ptr,&_SetBmpTrans, Ptr,VarSetCapacity(_SetBmpTrans), "uint",0x40, PtrA,0)
     }
     If !pBitmap
         Return -2001
@@ -180,12 +236,11 @@ Gdip_SetBitmapTransColor(pBitmap,TransColor) {
         }
     }
     */
-    ; Thanks guest3456 for helping with this solution involving NumPut
-    Gdip_FromARGB(TransColor,A,R,G,B), TransColor := "", VarSetCapacity(TransColor,3,255)
+    ; Thanks guest3456 for helping with the initial solution involving NumPut
+    Gdip_FromARGB(TransColor,A,R,G,B), VarSetCapacity(TransColor,0), VarSetCapacity(TransColor,3,255)
     NumPut(B,TransColor,0,"UChar"), NumPut(G,TransColor,1,"UChar"), NumPut(R,TransColor,2,"UChar")
-    ; _SELF_REMINDER_ - this will be implemented to count the number of modified pixels
     MCount := 0
-    E := DllCall( &_SetBmpTrans, Ptr,Scan, "int",W, "int",H, "int",Stride, Ptr,&TransColor, "cdecl int")
+    E := DllCall(&_SetBmpTrans, Ptr,Scan, "int",W, "int",H, "int",Stride, Ptr,&TransColor, "int*",MCount, "cdecl int")
     Gdip_UnlockBits(pBitmap,BitmapData)
     If ( E != 0 ) {
         ErrorLevel := E
@@ -210,6 +265,15 @@ Gdip_SetBitmapTransColor(pBitmap,TransColor) {
 ; for these users: tic , Rseding91 , guest3456
 ;
 ;**********************************************************************************
+
+;==================================================================================
+;
+; This function returns the number of instances found
+; The 8 first parameters are the same as in Gdip_LockedBitsSearch()
+; The other 10 parameters are the same as in Gdip_ImageSearch()
+; Note: the default for the Intances parameter here is 0 (find all matches)
+;
+;==================================================================================
 
 Gdip_MultiLockedBitsSearch(hStride,hScan,hWidth,hHeight,nStride,nScan,nWidth,nHeight
 ,ByRef OutputList="",OuterX1=0,OuterY1=0,OuterX2=0,OuterY2=0,Variation=0
@@ -291,6 +355,8 @@ Gdip_MultiLockedBitsSearch(hStride,hScan,hWidth,hHeight,nStride,nScan,nWidth,nHe
 
 ;==================================================================================
 ;
+; This function searches for a single match of nScan within hScan
+;
 ; ++ PARAMETERS ++
 ;
 ; hStride, hScan, hWidth and hHeight
@@ -328,8 +394,10 @@ Gdip_MultiLockedBitsSearch(hStride,hScan,hWidth,hHeight,nStride,nScan,nWidth,nHe
 ; ++ RETURN VALUES ++
 ;
 ; -3001 to -3006 ==> search area incorrectly defined
-; -3007 ==> DllCall failed (see ErrorLevel)
-; 0 ==> DllCall succeeded (found a match)
+; -3007 ==> DllCall returned blank
+; 0 ==> DllCall succeeded and a match was found
+; -4001 ==> DllCall succeeded but a match was not found
+; anything else ==> the error value returned by the unsuccessful DllCall
 ;
 ;==================================================================================
 
@@ -406,76 +474,76 @@ Gdip_LockedBitsSearch(hStride,hScan,hWidth,hHeight,nStride,nScan,nWidth,nHeight
             b604068d0c103bf97f422bc23bf87c3c8b4424148b7c24408b4c24444083c50483c30483c604894424143bc17c818b5c2420
             8b7424240374244c8b44242840035c245089742424e924ffffff8b7c24108b6c241c8b44244c8b5c24608b4c24444703e889
             7c2410896c241c3bfb0f8cf3feffff8b7c24688b6c24584f897c24683b7c24540f8dc5feffff8b4424345fc700ffffffff8b
-            4424345e5dc700ffffffff83c8ff5b83c420c3,4c894c24204c89442418488954241048894c240853555657415441554
-            15641574883ec188b8424c80000004d8bd94d8bd0488bda83f8010f85b1010000448b8c24a800000044890c24443b8c24b80
-            000000f8d66010000448bac24900000008b9424c0000000448b8424b00000008bbc2480000000448b9424a0000000418bcd4
-            10fafc9894c24040f1f84000000000044899424c8000000453bd00f8dfb000000468d2495000000000f1f800000000033ed4
-            48bf933f6660f1f8400000000003bac24880000000f8d1501000033db85ff7e7e458bf4448bce442bf64503f7904d63c14d0
-            3c34180780300745a450fb65002438d040e4c63d84c035c2470410fb64b028d0411443bd07f572bca443bd17c50410fb64b0
-            1450fb650018d0411443bd07f3e2bca443bd17c37410fb60b450fb6108d0411443bd07f272bca443bd17c204c8b5c2478ffc
-            34183c1043bdf7c8fffc54503fd03b42498000000e95effffff8b8424c8000000448b8424b00000008b4c24044c8b5c2478f
-            fc04183c404898424c8000000413bc00f8c20ffffff448b0c24448b9424a000000041ffc14103cd44890c24894c2404443b8
-            c24b80000000f8cd8feffff488b5c2468488b4c246083c8ffc701ffffffffc703ffffffff4883c418415f415e415d415c5f5
-            e5d5bc38b8424c8000000e9880b000083f8020f858e010000448b8c24b800000041ffc944890c24443b8c24a80000007cad4
-            48bac2490000000448b8424c00000008b9424b00000008bbc2480000000448b9424a0000000418bc9410fafcd418bc5894c2
-            404f7d889442408660f1f44000044899424c8000000443bd20f8d02010000468d2495000000000f1f80000000004533f6448
-            bf933f60f1f840000000000443bb424880000000f8d54ffffff33db85ff0f8e81000000418bec448bd62bee4103ef4963d24
-            903d3807a03007460440fb64a02418d042a4c63d84c035c2470410fb64b02428d0401443bc87f5d412bc8443bc97c55410fb
-            64b01440fb64a01428d0401443bc87f42412bc8443bc97c3a410fb60b440fb60a428d0401443bc87f29412bc8443bc97c214
-            c8b5c2478ffc34183c2043bdf7c8a41ffc64503fd03b42498000000e955ffffff8b8424c80000008b9424b00000008b4c240
-            44c8b5c2478ffc04183c404898424c80000003bc20f8c19ffffff448b0c24448b9424a0000000034c240841ffc9894c24044
-            4890c24443b8c24a80000000f8dd0feffffe933feffff83f8030f85c4010000448b8c24b800000041ffc944898c24c800000
-            0443b8c24a80000000f8c0efeffff8b842490000000448b9c24b0000000448b8424c00000008bbc248000000041ffcb418bc
-            98bd044895c24080fafc8f7da890c24895424048b9424a0000000448b542404458beb443bda0f8c13010000468d249d00000
-            00066660f1f84000000000033ed448bf933f6660f1f8400000000003bac24880000000f8d0801000033db85ff0f8e9600000
-            0488b4c2478458bf4448bd6442bf64503f70f1f8400000000004963d24803d1807a03007460440fb64a02438d04164c63d84
-            c035c2470410fb64b02428d0401443bc87f63412bc8443bc97c5b410fb64b01440fb64a01428d0401443bc87f48412bc8443
-            bc97c40410fb60b440fb60a428d0401443bc87f2f412bc8443bc97c27488b4c2478ffc34183c2043bdf7c8a8b84249000000
-            0ffc54403f803b42498000000e942ffffff8b9424a00000008b8424900000008b0c2441ffcd4183ec04443bea0f8d11fffff
-            f448b8c24c8000000448b542404448b5c240841ffc94103ca44898c24c8000000890c24443b8c24a80000000f8dc2feffffe
-            983fcffff488b4c24608b8424c8000000448929488b4c2468890133c0e97ffcffff83f8040f857f010000448b8c24a800000
-            044890c24443b8c24b80000000f8d48fcffff448bac2490000000448b9424b00000008b9424c0000000448b8424a00000008
-            bbc248000000041ffca418bcd4489542408410fafc9894c2404669044899424c8000000453bd00f8cf8000000468d2495000
-            000000f1f800000000033ed448bf933f6660f1f8400000000003bac24880000000f8df5fbffff33db85ff7e7e458bf4448bc
-            e442bf64503f7904d63c14d03c34180780300745a450fb65002438d040e4c63d84c035c2470410fb64b028d0411443bd07f5
-            72bca443bd17c50410fb64b01450fb650018d0411443bd07f3e2bca443bd17c37410fb60b450fb6108d0411443bd07f272bc
-            a443bd17c204c8b5c2478ffc34183c1043bdf7c8fffc54503fd03b42498000000e95effffff8b8424c8000000448b8424a00
-            000008b4c24044c8b5c2478ffc84183ec04898424c8000000413bc00f8d20ffffff448b0c24448b54240841ffc14103cd448
-            90c24894c2404443b8c24b80000000f8cdbfeffffe9defaffff83f8050f85ab010000448b8424a000000044890424443b842
-            4b00000000f8dc0faffff8b9424c0000000448bac2498000000448ba424900000008bbc2480000000448b8c24a8000000428
-            d0c8500000000898c24c800000044894c2404443b8c24b80000000f8d09010000418bc4410fafc18944240833ed448bf833f
-            6660f1f8400000000003bac24880000000f8d0501000033db85ff0f8e87000000448bf1448bce442bf64503f74d63c14d03c
-            34180780300745d438d040e4c63d84d03da450fb65002410fb64b028d0411443bd07f5f2bca443bd17c58410fb64b01450fb
-            650018d0411443bd07f462bca443bd17c3f410fb60b450fb6108d0411443bd07f2f2bca443bd17c284c8b5c24784c8b54247
-            0ffc34183c1043bdf7c8c8b8c24c8000000ffc54503fc4103f5e955ffffff448b4424048b4424088b8c24c80000004c8b5c2
-            4784c8b54247041ffc04103c4448944240489442408443b8424b80000000f8c0effffff448b0424448b8c24a800000041ffc
-            083c10444890424898c24c8000000443b8424b00000000f8cc5feffffe946f9ffff488b4c24608b042489018b442404488b4
-            c2468890133c0e943f9ffff83f8060f85aa010000448b8c24a000000044894c2404443b8c24b00000000f8d0bf9ffff8b842
-            4b8000000448b8424c0000000448ba424900000008bbc2480000000428d0c8d00000000ffc88944240c898c24c8000000666
-            6660f1f840000000000448be83b8424a80000000f8c02010000410fafc4418bd4f7da891424894424084533f6448bf833f60
-            f1f840000000000443bb424880000000f8df900000033db85ff0f8e870000008be9448bd62bee4103ef4963d24903d3807a0
-            3007460440fb64a02418d042a4c63d84c035c2470410fb64b02428d0401443bc87f64412bc8443bc97c5c410fb64b01440fb
-            64a01428d0401443bc87f49412bc8443bc97c41410fb60b440fb60a428d0401443bc87f30412bc8443bc97c284c8b5c2478f
-            fc34183c2043bdf7c8a8b8c24c800000041ffc64503fc03b42498000000e94fffffff8b4424088b8c24c80000004c8b5c247
-            803042441ffcd89442408443bac24a80000000f8d17ffffff448b4c24048b44240c41ffc183c10444894c2404898c24c8000
-            000443b8c24b00000000f8ccefeffffe991f7ffff488b4c24608b4424048901488b4c246833c0448929e990f7ffff83f8070
-            f858d010000448b8c24b000000041ffc944894c2404443b8c24a00000000f8c55f7ffff8b8424b8000000448b8424c000000
-            0448ba424900000008bbc2480000000428d0c8d00000000ffc8890424898c24c8000000660f1f440000448be83b8424a8000
-            0000f8c02010000410fafc4418bd4f7da8954240c8944240833ed448bf833f60f1f8400000000003bac24880000000f8d4af
-            fffff33db85ff0f8e89000000448bf1448bd6442bf64503f74963d24903d3807a03007460440fb64a02438d04164c63d84c0
-            35c2470410fb64b02428d0401443bc87f63412bc8443bc97c5b410fb64b01440fb64a01428d0401443bc87f48412bc8443bc
-            97c40410fb60b440fb60a428d0401443bc87f2f412bc8443bc97c274c8b5c2478ffc34183c2043bdf7c8a8b8c24c8000000f
-            fc54503fc03b42498000000e94fffffff8b4424088b8c24c80000004c8b5c24780344240c41ffcd89442408443bac24a8000
-            0000f8d17ffffff448b4c24048b042441ffc983e90444894c2404898c24c8000000443b8c24a00000000f8dcefeffffe9e1f
-            5ffff83f8080f85ddf5ffff448b8424b000000041ffc84489442404443b8424a00000000f8cbff5ffff8b9424c0000000448
-            bac2498000000448ba424900000008bbc2480000000448b8c24a8000000428d0c8500000000898c24c800000044890c24443
-            b8c24b80000000f8d08010000418bc4410fafc18944240833ed448bf833f6660f1f8400000000003bac24880000000f8d050
-            1000033db85ff0f8e87000000448bf1448bce442bf64503f74d63c14d03c34180780300745d438d040e4c63d84d03da450fb
-            65002410fb64b028d0411443bd07f5f2bca443bd17c58410fb64b01450fb650018d0411443bd07f462bca443bd17c3f410fb
-            603450fb6108d0c10443bd17f2f2bc2443bd07c284c8b5c24784c8b542470ffc34183c1043bdf7c8c8b8c24c8000000ffc54
-            503fc4103f5e955ffffff448b04248b4424088b8c24c80000004c8b5c24784c8b54247041ffc04103c444890424894424084
-            43b8424b80000000f8c10ffffff448b442404448b8c24a800000041ffc883e9044489442404898c24c8000000443b8424a00
-            000000f8dc6feffffe946f4ffff8b442404488b4c246089018b0424488b4c2468890133c0e943f4ffff
+            4424345e5dc700ffffffffb85ff0ffff5b83c420c3,4c894c24204c89442418488954241048894c24085355565741544
+            155415641574883ec188b8424c80000004d8bd94d8bd0488bda83f8010f85b3010000448b8c24a800000044890c24443b8c2
+            4b80000000f8d66010000448bac24900000008b9424c0000000448b8424b00000008bbc2480000000448b9424a0000000418
+            bcd410fafc9894c24040f1f84000000000044899424c8000000453bd00f8dfb000000468d2495000000000f1f80000000003
+            3ed448bf933f6660f1f8400000000003bac24880000000f8d1701000033db85ff7e7e458bf4448bce442bf64503f7904d63c
+            14d03c34180780300745a450fb65002438d040e4c63d84c035c2470410fb64b028d0411443bd07f572bca443bd17c50410fb
+            64b01450fb650018d0411443bd07f3e2bca443bd17c37410fb60b450fb6108d0411443bd07f272bca443bd17c204c8b5c247
+            8ffc34183c1043bdf7c8fffc54503fd03b42498000000e95effffff8b8424c8000000448b8424b00000008b4c24044c8b5c2
+            478ffc04183c404898424c8000000413bc00f8c20ffffff448b0c24448b9424a000000041ffc14103cd44890c24894c24044
+            43b8c24b80000000f8cd8feffff488b5c2468488b4c2460b85ff0ffffc701ffffffffc703ffffffff4883c418415f415e415
+            d415c5f5e5d5bc38b8424c8000000e9860b000083f8020f858c010000448b8c24b800000041ffc944890c24443b8c24a8000
+            0007cab448bac2490000000448b8424c00000008b9424b00000008bbc2480000000448b9424a0000000418bc9410fafcd418
+            bc5894c2404f7d8894424080f1f400044899424c8000000443bd20f8d02010000468d2495000000000f1f80000000004533f
+            6448bf933f60f1f840000000000443bb424880000000f8d56ffffff33db85ff0f8e81000000418bec448bd62bee4103ef496
+            3d24903d3807a03007460440fb64a02418d042a4c63d84c035c2470410fb64b02428d0401443bc87f5d412bc8443bc97c554
+            10fb64b01440fb64a01428d0401443bc87f42412bc8443bc97c3a410fb60b440fb60a428d0401443bc87f29412bc8443bc97
+            c214c8b5c2478ffc34183c2043bdf7c8a41ffc64503fd03b42498000000e955ffffff8b8424c80000008b9424b00000008b4
+            c24044c8b5c2478ffc04183c404898424c80000003bc20f8c19ffffff448b0c24448b9424a0000000034c240841ffc9894c2
+            40444890c24443b8c24a80000000f8dd0feffffe933feffff83f8030f85c4010000448b8c24b800000041ffc944898c24c80
+            00000443b8c24a80000000f8c0efeffff8b842490000000448b9c24b0000000448b8424c00000008bbc248000000041ffcb4
+            18bc98bd044895c24080fafc8f7da890c24895424048b9424a0000000448b542404458beb443bda0f8c13010000468d249d0
+            000000066660f1f84000000000033ed448bf933f6660f1f8400000000003bac24880000000f8d0801000033db85ff0f8e960
+            00000488b4c2478458bf4448bd6442bf64503f70f1f8400000000004963d24803d1807a03007460440fb64a02438d04164c6
+            3d84c035c2470410fb64b02428d0401443bc87f63412bc8443bc97c5b410fb64b01440fb64a01428d0401443bc87f48412bc
+            8443bc97c40410fb60b440fb60a428d0401443bc87f2f412bc8443bc97c27488b4c2478ffc34183c2043bdf7c8a8b8424900
+            00000ffc54403f803b42498000000e942ffffff8b9424a00000008b8424900000008b0c2441ffcd4183ec04443bea0f8d11f
+            fffff448b8c24c8000000448b542404448b5c240841ffc94103ca44898c24c8000000890c24443b8c24a80000000f8dc2fef
+            fffe983fcffff488b4c24608b8424c8000000448929488b4c2468890133c0e981fcffff83f8040f857f010000448b8c24a80
+            0000044890c24443b8c24b80000000f8d48fcffff448bac2490000000448b9424b00000008b9424c0000000448b8424a0000
+            0008bbc248000000041ffca418bcd4489542408410fafc9894c2404669044899424c8000000453bd00f8cf8000000468d249
+            5000000000f1f800000000033ed448bf933f6660f1f8400000000003bac24880000000f8df7fbffff33db85ff7e7e458bf44
+            48bce442bf64503f7904d63c14d03c34180780300745a450fb65002438d040e4c63d84c035c2470410fb64b028d0411443bd
+            07f572bca443bd17c50410fb64b01450fb650018d0411443bd07f3e2bca443bd17c37410fb60b450fb6108d0411443bd07f2
+            72bca443bd17c204c8b5c2478ffc34183c1043bdf7c8fffc54503fd03b42498000000e95effffff8b8424c8000000448b842
+            4a00000008b4c24044c8b5c2478ffc84183ec04898424c8000000413bc00f8d20ffffff448b0c24448b54240841ffc14103c
+            d44890c24894c2404443b8c24b80000000f8cdbfeffffe9defaffff83f8050f85ab010000448b8424a000000044890424443
+            b8424b00000000f8dc0faffff8b9424c0000000448bac2498000000448ba424900000008bbc2480000000448b8c24a800000
+            0428d0c8500000000898c24c800000044894c2404443b8c24b80000000f8d09010000418bc4410fafc18944240833ed448bf
+            833f6660f1f8400000000003bac24880000000f8d0501000033db85ff0f8e87000000448bf1448bce442bf64503f74d63c14
+            d03c34180780300745d438d040e4c63d84d03da450fb65002410fb64b028d0411443bd07f5f2bca443bd17c58410fb64b014
+            50fb650018d0411443bd07f462bca443bd17c3f410fb60b450fb6108d0411443bd07f2f2bca443bd17c284c8b5c24784c8b5
+            42470ffc34183c1043bdf7c8c8b8c24c8000000ffc54503fc4103f5e955ffffff448b4424048b4424088b8c24c80000004c8
+            b5c24784c8b54247041ffc04103c4448944240489442408443b8424b80000000f8c0effffff448b0424448b8c24a80000004
+            1ffc083c10444890424898c24c8000000443b8424b00000000f8cc5feffffe946f9ffff488b4c24608b042489018b4424044
+            88b4c2468890133c0e945f9ffff83f8060f85aa010000448b8c24a000000044894c2404443b8c24b00000000f8d0bf9ffff8
+            b8424b8000000448b8424c0000000448ba424900000008bbc2480000000428d0c8d00000000ffc88944240c898c24c800000
+            06666660f1f840000000000448be83b8424a80000000f8c02010000410fafc4418bd4f7da891424894424084533f6448bf83
+            3f60f1f840000000000443bb424880000000f8df900000033db85ff0f8e870000008be9448bd62bee4103ef4963d24903d38
+            07a03007460440fb64a02418d042a4c63d84c035c2470410fb64b02428d0401443bc87f64412bc8443bc97c5c410fb64b014
+            40fb64a01428d0401443bc87f49412bc8443bc97c41410fb60b440fb60a428d0401443bc87f30412bc8443bc97c284c8b5c2
+            478ffc34183c2043bdf7c8a8b8c24c800000041ffc64503fc03b42498000000e94fffffff8b4424088b8c24c80000004c8b5
+            c247803042441ffcd89442408443bac24a80000000f8d17ffffff448b4c24048b44240c41ffc183c10444894c2404898c24c
+            8000000443b8c24b00000000f8ccefeffffe991f7ffff488b4c24608b4424048901488b4c246833c0448929e992f7ffff83f
+            8070f858d010000448b8c24b000000041ffc944894c2404443b8c24a00000000f8c55f7ffff8b8424b8000000448b8424c00
+            00000448ba424900000008bbc2480000000428d0c8d00000000ffc8890424898c24c8000000660f1f440000448be83b8424a
+            80000000f8c02010000410fafc4418bd4f7da8954240c8944240833ed448bf833f60f1f8400000000003bac24880000000f8
+            d4affffff33db85ff0f8e89000000448bf1448bd6442bf64503f74963d24903d3807a03007460440fb64a02438d04164c63d
+            84c035c2470410fb64b02428d0401443bc87f63412bc8443bc97c5b410fb64b01440fb64a01428d0401443bc87f48412bc84
+            43bc97c40410fb60b440fb60a428d0401443bc87f2f412bc8443bc97c274c8b5c2478ffc34183c2043bdf7c8a8b8c24c8000
+            000ffc54503fc03b42498000000e94fffffff8b4424088b8c24c80000004c8b5c24780344240c41ffcd89442408443bac24a
+            80000000f8d17ffffff448b4c24048b042441ffc983e90444894c2404898c24c8000000443b8c24a00000000f8dcefeffffe
+            9e1f5ffff83f8080f85ddf5ffff448b8424b000000041ffc84489442404443b8424a00000000f8cbff5ffff8b9424c000000
+            0448bac2498000000448ba424900000008bbc2480000000448b8c24a8000000428d0c8500000000898c24c800000044890c2
+            4443b8c24b80000000f8d08010000418bc4410fafc18944240833ed448bf833f6660f1f8400000000003bac24880000000f8
+            d0501000033db85ff0f8e87000000448bf1448bce442bf64503f74d63c14d03c34180780300745d438d040e4c63d84d03da4
+            50fb65002410fb64b028d0411443bd07f5f2bca443bd17c58410fb64b01450fb650018d0411443bd07f462bca443bd17c3f4
+            10fb603450fb6108d0c10443bd17f2f2bc2443bd07c284c8b5c24784c8b542470ffc34183c1043bdf7c8c8b8c24c8000000f
+            fc54503fc4103f5e955ffffff448b04248b4424088b8c24c80000004c8b5c24784c8b54247041ffc04103c44489042489442
+            408443b8424b80000000f8c10ffffff448b442404448b8c24a800000041ffc883e9044489442404898c24c8000000443b842
+            4a00000000f8dc6feffffe946f4ffff8b442404488b4c246089018b0424488b4c2468890133c0e945f4ffff
             )"
         if ( A_PtrSize == 8 ) ; x64, after comma
             MCode_ImageSearch := SubStr(MCode_ImageSearch,InStr(MCode_ImageSearch,",")+1)
@@ -483,9 +551,9 @@ Gdip_LockedBitsSearch(hStride,hScan,hWidth,hHeight,nStride,nScan,nWidth,nHeight
             MCode_ImageSearch := SubStr(MCode_ImageSearch,1,InStr(MCode_ImageSearch,",")-1)
         VarSetCapacity(_ImageSearch, LEN := StrLen(MCode_ImageSearch)//2, 0)
         Loop, %LEN%
-            NumPut("0x" . SubStr(MCode_ImageSearch, (2*A_Index)-1, 2), _ImageSearch, A_Index-1, "uchar")
+            NumPut("0x" . SubStr(MCode_ImageSearch,(2*A_Index)-1,2), _ImageSearch, A_Index-1, "uchar")
         MCode_ImageSearch := ""
-        DllCall("VirtualProtect", Ptr, &_ImageSearch, Ptr, VarSetCapacity(_ImageSearch), "uint", 0x40, PtrA, 0)
+        DllCall("VirtualProtect", Ptr,&_ImageSearch, Ptr,VarSetCapacity(_ImageSearch), "uint",0x40, PtrA,0)
     }
 
     ; Abort if an initial coordinates is located before a final coordinate
@@ -514,10 +582,5 @@ Gdip_LockedBitsSearch(hStride,hScan,hWidth,hHeight,nStride,nScan,nWidth,nHeight
     , E := DllCall( &_ImageSearch, "int*",x, "int*",y, Ptr,hScan, Ptr,nScan, "int",nWidth, "int",nHeight
     , "int",hStride, "int",nStride, "int",sx1, "int",sy1, "int",sx2, "int",sy2, "int",Variation
     , "int",sd, "cdecl int")
-    ; _SELF_REMINDER_ - adjust the value returned by the MCode if a match is not found
-    If ( E != 0 ) {
-        ErrorLevel := E
-        Return -3007
-    }
-    Return 0
+    Return ( E == "" ? -3007 : E )
 }

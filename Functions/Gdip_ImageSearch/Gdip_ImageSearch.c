@@ -199,7 +199,7 @@ int Gdip_ImageSearch(int * Foundx, int * Foundy, unsigned char * HayStack, unsig
         }
     }
     Foundx[0] = -1; Foundy[0] = -1;
-    return -1;
+    return -4001;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -209,7 +209,7 @@ int Gdip_ImageSearch(int * Foundx, int * Foundy, unsigned char * HayStack, unsig
 /**********************************************************************************
 // Latest C code used to generate the MCode used in Gdip_SetBitmapTransColor()
 // by MasterFocus, based on original work by tic and Rseding91
-// Last modification: 23/MAR/2013 21:00 BRT
+// Last modification: 02/APR/2013 00:15 BRT
 //
 // Licensed under CC BY-SA 3.0: http://creativecommons.org/licenses/by-sa/3.0/
 // I waive compliance with the "Share Alike" condition of the license
@@ -219,17 +219,21 @@ int Gdip_ImageSearch(int * Foundx, int * Foundy, unsigned char * HayStack, unsig
 // http://www.github.com/MasterFocus/
 **********************************************************************************/
 
-int Gdip_SetBitmapTransColor(unsigned char * Scan, int Width, int Height, int Stride, unsigned char * Trans)
+int Gdip_SetBitmapTransColor(unsigned char * Scan, int Width, int Height, int Stride, unsigned char * Trans, int * MCount)
 {
     int x1, y1, index;
+    MCount[0] = 0;
     for (y1 = 0; y1 < Height; y1++) {
         for (x1 = 0; x1 < Width; x1++) {
             // using index to calculate the needle index offset only once
             index = (4*x1)+(y1*Stride);
             if ( Scan[index+2] == Trans[2]
             &&   Scan[index+1] == Trans[1]
-            &&   Scan[index+0] == Trans[0] )
+            &&   Scan[index+0] == Trans[0] ) {
                 Scan[index+3] = 0;
+                MCount[0]++;
+            }
         }
     }
+    return 0;
 }

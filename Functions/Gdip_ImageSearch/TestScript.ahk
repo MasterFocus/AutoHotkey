@@ -1,7 +1,7 @@
 ;************************************************
 ; Test script for Gdip_ImageSearch()
 ; by MasterFocus
-; 23/March/2013 02:00 BRT
+; 02/April/2013 00:30h BRT
 ;************************************************
 
 #NoEnv
@@ -19,9 +19,9 @@ gdipToken := Gdip_Startup()
 ;;SLEEP, 2000
 ;;bmpHaystack := Gdip_BitmapFromScreen()
 
-bmpHaystack := Gdip_CreateBitmapFromFile("T-002-haystack-novo.png")
-bmpNeedle := Gdip_CreateBitmapFromFile("T-002-needle-novo.png")
-RET := Gdip_ImageSearch(bmpHaystack,bmpNeedle,LIST,0,0,0,0,0,0xFFFFFF)
+bmpHaystack := Gdip_CreateBitmapFromFile("IMG/T-002-haystack-novo.png")
+bmpNeedle := Gdip_CreateBitmapFromFile("IMG/T-002-needle-novo.png")
+RET := Gdip_ImageSearch(bmpHaystack,bmpNeedle,LIST,0,0,0,0,0,0xFFFFFF,1,0)
 Gdip_DisposeImage(bmpHaystack)
 Gdip_DisposeImage(bmpNeedle)
 Gdip_Shutdown(gdipToken)
