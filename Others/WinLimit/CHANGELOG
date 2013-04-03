@@ -1,0 +1,10 @@
+04/april/2013
+  • Fixed wrong behaviour when closing a window (via close button)
+  • Added excpetion when clicking on the System Tray area
+  • Fixed Check() by adding more ErrorLevel values
+
+13/december/2010
+  • Fixed logical mistake (removed unnecessary frequent checks)
+
+06/december/2010
+  • Initial release
