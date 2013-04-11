@@ -1,3 +1,6 @@
+11/april/2013
+  • A timed WinGetPos is now used instead of SendMessage + WM_NCHITTEST
+
 04/april/2013
   • Fixed wrong behaviour when closing a window (via close button)
   • Added excpetion when clicking on the System Tray area

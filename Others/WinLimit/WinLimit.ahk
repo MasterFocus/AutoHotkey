@@ -22,7 +22,7 @@
 ; Description:  Prevent windows from being dragged off the screen
 ; URL (+info):  http://autohotkey.com/community/viewtopic.php?p=405187#p405187
 ;
-; Last Update:  03/April/2013 14:20 BRT
+; Last Update:  11/April/2013 03:45 BRT
 ;
 ; Created by MasterFocus
 ; - https://github.com/MasterFocus
@@ -39,7 +39,7 @@ ListLines, Off
 Process, Priority, , High
 
 ; If the Monitor Work Area may change while the script is running,
-; put the following 2 lines right after the 'MyLabel:' line
+; put the following 2 lines right after the 'ConfineLabel:' line
 SysGet, MWA_, MonitorWorkArea
 scrW := MWA_Right-MWA_Left , scrH := MWA_Bottom-MWA_Top
 
@@ -53,32 +53,27 @@ Return
   WinGet, State, MinMax, ahk_id %hWin%
   WinGetPos, winX, winY, winW, winH, ahk_id %hWin%
   ; Only if the clicked window is not maximized/minimized, and it's not the Tray area
-  If (!State && Check(winX,winY,hWin) && (wClass!="Shell_TrayWnd"))
-    SetTimer, MyLabel, 10
+  If (!State && (wClass!="Shell_TrayWnd")) {
+    oldX := winX, oldY := winY, oldW := winW, oldH := winH
+    SetTimer, ConfineLabel, 10
+  }
   KeyWait, LButton
-  SetTimer, MyLabel, Off
+  SetTimer, ConfineLabel, Off
   Confine()
 Return
 
 ;-------------------------------------------------
 
-MyLabel:
-  MouseGetPos, mouseX, mouseY
+ConfineLabel:
   WinGetPos, winX, winY, winW, winH, ahk_id %hWin%
-  If ( winW && winH ) ; This check avoids moving the mouse if the window is closed
-    Confine( 1 , mouseX-winX , mouseY-winY , mouseX+scrW-winW-winX , mouseY+scrH-winH-winY )
+  ; Confine if window was not closed, and didn't retain position/dimensions...
+  If (winW && winH && !((oldX=winX)&(oldY=winY)&(oldW=winW)&(oldH=winH))) {
+    SetTimer, ConfineLabel, Off
+    MouseGetPos, mouseX, mouseY
+    Confine(1,mouseX-winX,mouseY-winY,mouseX+scrW-winW-winX,mouseY+scrH-winH-winY)
+  }
+  oldX := winX, oldY := winY, oldW := winW, oldH := winH
 Return
-
-;=================================================
-
-; Following function adapted from:
-; http://www.autohotkey.com/community/viewtopic.php?f=2&t=22178
-Check(X,Y,HWND) {
-   SendMessage, 0x84,, (X & 0xFFFF)|(Y & 0xFFFF) << 16 ,, ahk_id %HWND%
-   ; Return true if the mouse is over the title bar caption or a resizable border
-   ; (Notepad and Explorer gave me ErrorLevel 17 instead of 2 when tested on Win7)
-   Return ((ErrorLevel=2)||(ErrorLevel>=10 && ErrorLevel<=17))
-}
 
 ;=================================================
 
