@@ -1,0 +1,14 @@
+; ==========================================================================================================================
+
+; p_Xi,p_Yi,p_Xf,p_Yf are origin and destination coordinates.
+; If p_R (relative), they're offsets for current mouse position.
+
+; p_R is boolean for relative movement. p_Time is in miliseconds and should be at least 1.
+
+; p_Off# are offsets for top, bottom, left and right of the rectangle formed by [Xi,Yi,Xf,Yf].
+
+; p_Max refer to the number of points to be calculated, defining how many splines will exist.
+
+; p_Min is the same. If 2, it can be a straight line. To ensure it's a curve, must be at least 3.
+
+; ==========================================================================================================================
