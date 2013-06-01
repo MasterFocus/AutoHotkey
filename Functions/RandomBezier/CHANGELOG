@@ -1,2 +1,8 @@
+04/october/2012
+  • Reduced the number of parameters by using an options string
+  • Reworked the amount of control points (specific, min/max, default values...)
+  • Added "offsets" (actually boundaries) for the random points according to the [X0,Y0,Xf,Yf] rectangle
+  • The main part of the code is now reduced and faster
+
 24/september/2012
   • Initial release
