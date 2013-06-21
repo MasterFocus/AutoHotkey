@@ -1,3 +1,6 @@
+30/may/2013
+  • The relative option can now be specified for initial and/or final coordinates separately
+
 04/october/2012
   • Reduced the number of parameters by using an options string
   • Reworked the amount of control points (specific, min/max, default values...)

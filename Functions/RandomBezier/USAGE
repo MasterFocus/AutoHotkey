@@ -13,10 +13,13 @@
 
  # "Tx" (where x is a positive number)
    > The time of the mouse movement, in miliseconds
-   > Defaults to 200
- # "REL"
-   > Consider all 4 coordinates (X0, Y0, Xf and Yf) as relative
-   > Default is not relative
+   > Defaults to 200 if not present
+ # "RO"
+   > Consider the origin coordinates (X0,Y0) as relative
+   > Defaults to "not relative" if not present
+ # "RD"
+   > Consider the destination coordinates (Xf,Yf) as relative
+   > Defaults to "not relative" if not present
  # "Px" or "Py-z" (where x, y and z are positive numbers)
    > "Px" uses exactly 'x' control points
    > "Py-z" uses a random number of points (from 'y' to 'z', inclusive)
