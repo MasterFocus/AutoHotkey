@@ -14,6 +14,7 @@
 | param_Options | String of options (see below) | blank |
 
 The *param_Options* string may contain multiple options:
+
 | Option | Description | Behaviour when not present in *param_Options* |
 | :--- | :--- | :--- |
 | "B" | Block mouse input while it's moving | Doesn't block by default |

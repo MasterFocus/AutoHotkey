@@ -1,7 +1,4 @@
-# WaitPixelColor
-[![](https://img.shields.io/badge/License-AGPLv3-blue.svg)](https://tldrlegal.com/license/gnu-affero-general-public-license-v3-(agpl-3.0))
-[![](https://img.shields.io/badge/AHK-1.0.x-brightgreen.svg)]()
-[![](https://img.shields.io/badge/AHK-1.1.x-brightgreen.svg)]()
+# WaitPixelColor [![](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://tldrlegal.com/license/gnu-affero-general-public-license-v3-(agpl-3.0)) <img src="https://img.shields.io/badge/AHK-1.0.*-brightgreen.svg" title="Ok" alt="AHK 1.0.* : Ok"/> <img src="https://img.shields.io/badge/AHK-1.1.*-brightgreen.svg" title="Ok" alt="AHK 1.1.* : Ok"/> <img src="https://img.shields.io/badge/AHK-2.0--a*-lightgray.svg" title="Untested" alt="AHK 2.0-a* : Untested"/>
 
 ## Usage
 ```p_DesiredColor, p_PosX, p_PosY [, p_TimeOut, p_GetMode, p_ReturnColor]```
