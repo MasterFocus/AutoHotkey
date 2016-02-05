@@ -7,6 +7,8 @@ Unless otherwise specified, my code is tipycally licensed under AGPL v3.
 
 -- Antonio [ [**git.io**][gio] | [ahk4.net][a4] | [~~Old topic (archived)~~][tf] ]
 
+<sub>For more **AutoHotkey**-related content, see [ahkscript @ GitHub](git.io/ahk).</sub>
+
 [gio]: https://git.io/master
 [a4]: http://masterfocus.ahk4.net
 [tf]: http://www.autohotkey.com/community/viewtopic.php?f=2&t=88198
