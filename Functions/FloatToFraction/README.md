@@ -12,7 +12,7 @@
 | p_Input | A positive integer or floating-point number |
 
 #### Optional Parameters
-| Name | Description | Default | Explanation |
+| Name | Description | Default | Explanation (default value) |
 | :--- | :--- | :--- | :--- |
 | p_MinRep | Minimum times a pattern should appear<br>to be considered a repetition | 2 | "0.6533" will be considered "0.6533333...",<br>but "0.653" will not |
 | p_MinPatLen | Minimum length of a pattern | 1 | The repeating pattern can be a single digit,<br>like "0.42[5][5]..." |
