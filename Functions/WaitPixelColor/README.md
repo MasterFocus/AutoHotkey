@@ -20,14 +20,14 @@
 | p_ReturnColor | Boolean, see returned values below | 0 (false) |
 
 ##### Returned values when *p_ReturnColor* is 0 (false):
-| | |
+| Value | Description |
 | :--- | :--- |
 | 0 | The desired color was found |
 | 1 | There was a problem during PixelGetColor |
 | 2 | The function timed out |
 
 ##### Returned values when *p_ReturnColor* is 1 (true):
-| | |
+| Value | Description |
 | :--- | :--- |
 | Blank | There was a problem during PixelGetColor |
 | Non-blank | Will be the latest found color, even if not the desired one |
