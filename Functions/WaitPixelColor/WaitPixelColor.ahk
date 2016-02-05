@@ -18,28 +18,27 @@
 
 ;========================================================================
 ; 
-; Function:     WaitPixelColor
-; Description:  Waits until pixel is a certain color (w/ optional timeout)
-; URL (+info):  https://bit.ly/R7gT8a
+; WaitPixelColor
+;   https://bit.ly/R7gT8a | https://github.com/MasterFocus/AutoHotkey
 ;
-; Last Update:  06/September/2012 09:00 BRT
+; Waits until a pixel is a certain color (w/ optional timeout)
 ;
 ; Created by MasterFocus
-; - https://github.com/MasterFocus
-; - http://masterfocus.ahk4.net
-; - http://autohotkey.com/community/viewtopic.php?f=2&t=88198
+;   https://git.io/master | http://masterfocus.ahk4.net
+;
+; Last Update: 2012-09-06 09:00 BRT
 ;
 ;========================================================================
 
 WaitPixelColor(p_DesiredColor,p_PosX,p_PosY,p_TimeOut=0,p_GetMode="",p_ReturnColor=0) {
-  l_Start := A_TickCount
-  Loop {
-    PixelGetColor, l_OutputColor, %p_PosX%, %p_PosY%, %p_GetMode%
-    If ErrorLevel
-      Return ( p_ReturnColor ? l_OutputColor : 1 )
-    If ( l_OutputColor = p_DesiredColor )
-      Return ( p_ReturnColor ? l_OutputColor : 0 )
-    If ( p_TimeOut ) && ( A_TickCount - l_Start >= p_TimeOut )
-      Return ( p_ReturnColor ? l_OutputColor : 2 )
-  }
+    l_Start := A_TickCount
+    Loop {
+        PixelGetColor, l_OutputColor, %p_PosX%, %p_PosY%, %p_GetMode%
+        If ( ErrorLevel )
+            Return ( p_ReturnColor ? l_OutputColor : 1 )
+        If ( l_OutputColor = p_DesiredColor )
+            Return ( p_ReturnColor ? l_OutputColor : 0 )
+        If ( p_TimeOut ) && ( A_TickCount - l_Start >= p_TimeOut )
+            Return ( p_ReturnColor ? l_OutputColor : 2 )
+    }
 }
