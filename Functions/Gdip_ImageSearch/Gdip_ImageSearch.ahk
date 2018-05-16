@@ -89,8 +89,8 @@ Gdip_ImageSearch(pBitmapHaystack,pBitmapNeedle,ByRef OutputList=""
     Gdip_GetImageDimensions(pBitmapHaystack,hWidth,hHeight)
     ; Last parameter being 1 says the LockMode flag is "READ only"
     If Gdip_LockBits(pBitmapHaystack,0,0,hWidth,hHeight,hStride,hScan,hBitmapData,1)
-    OR !(hWidth := NumGet(hBitmapData,0))
-    OR !(hHeight := NumGet(hBitmapData,4))
+    OR !(hWidth := NumGet(hBitmapData,0,"UInt"))
+    OR !(hHeight := NumGet(hBitmapData,4,"UInt"))
         Return -1004
 
     ; Careful! From this point on, we must do the following before returning:
@@ -115,8 +115,8 @@ Gdip_ImageSearch(pBitmapHaystack,pBitmapNeedle,ByRef OutputList=""
     ; - dispose current needle bitmap (if necessary)
 
     If Gdip_LockBits(pBitmapNeedle,0,0,nWidth,nHeight,nStride,nScan,nBitmapData)
-    OR !(nWidth := NumGet(nBitmapData,0))
-    OR !(nHeight := NumGet(nBitmapData,4))
+    OR !(nWidth := NumGet(nBitmapData,0,"UInt"))
+    OR !(nHeight := NumGet(nBitmapData,4,"UInt"))
     {
         If ( DumpCurrentNeedle )
             Gdip_DisposeImage(pBitmapNeedle)
